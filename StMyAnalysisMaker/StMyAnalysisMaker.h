@@ -65,6 +65,7 @@ class TH2D;
 class TMinuit;
 
 const int nCent = 10;
+const int nVz=2;
 
 class StMyAnalysisMaker : public StMaker {
   public:
@@ -92,7 +93,7 @@ class StMyAnalysisMaker : public StMaker {
     mZDCSMD *miniZDCSMD;
     bool isGoodEvent();
     bool  isGoodTrack(StPicoTrack const*) const;
-    bool  isGoodEvent(StPicoEvent const*) const;
+    bool  isGoodEvent(StPicoEvent const*);
     bool  isTpcPion(StPicoTrack const*) const;
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
@@ -106,16 +107,20 @@ class StMyAnalysisMaker : public StMaker {
     int mPrevRunId;
     double     PI;
     double     twoPI;
-    std::vector<Int_t> badList;
+    std::vector<Int_t> mBadList;
+		std::vector<Int_t> mRunList;
     int        mRun;            
     int mTempRunId;
     int mTempEvtId;
     double     mEnergy;            
+    double     mWght;            
     TString    mListDir;            
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
     bool  readBadList();            
-    bool  removeBadID(int runnumber);            
+		bool  readRunList();            
+    bool  removeBadID(int runnumber) const;            
+    Int_t CheckrunNumber(int runnumber) const;            
     TH1D *zdcPsi;
     TH1D *zdcPsi_corr;
     TProfile *pionV1Plus;
