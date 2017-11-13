@@ -39,8 +39,8 @@ StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker
   mPicoDstMaker = picoMaker;
   mPicoDst = 0;
   mOutName = outName;
-	mRun    =0;
-	mEnergy =0;
+	mRun    = 16;
+	mEnergy =200;
 	mListDir="./";
 }
 
@@ -143,6 +143,7 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
+  cout<<"this is a good event!"<<endl;
   if(!mGRefMultCorrUtil) {
     LOG_WARN << " No mGRefMultCorrUtil! Skip! " << endl;
     return kStWarn;
@@ -466,12 +467,13 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
       &&(!mEvent->isTrigger(520031))
       &&(!mEvent->isTrigger(520041))
       &&(!mEvent->isTrigger(520051))
-    )return kStOK; 
+    )
+      return false; 
 
 
   // remove duplicate events
   ////////////////////////////////////
-  if(mTempRunId==runID&&mTempEvtId==evtID)return kStOK;
+  if(mTempRunId==runID&&mTempEvtId==evtID)return false;
   mTempRunId=runID;  mTempEvtId=evtID;
   ////////////////////////////////////
 
@@ -482,18 +484,16 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   const double vpdVz   = mEvent->vzVpd();
 
   //event cut
-  if(refMult <=2 || refMult > 1000) return kStOK;
-  //if(mEnergy<200&&!mEvent->isMinBias())return kStOK;    // run11 200 isMinBias() returns only vpd-zdc-mb-protected 
-  if(removeBadID(runID))return kStOK;            
-  //if(mRefMultCorr->isBadRun(runID))return kStOK;
-  if(fabs(VertexZ) > 100) return kStOK; 
+  if(refMult <=2 || refMult > 1000) return false;
+  if(removeBadID(runID))return false;            
+  if(fabs(VertexZ) > 100) return false; 
 
   // hVertex2D ->Fill(VertexZ,vpdVz);
   // hDiffVz   ->Fill(VertexZ-vpdVz); 
 
-  if(fabs(VertexZ) > 6) return kStOK; 
-  if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return kStOK; 
-  if(fabs(VertexZ-vpdVz)>3.)return kStOK;       // no vpd cut in low energy?
+  if(fabs(VertexZ) > 6) return false; 
+  if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return false; 
+  if(fabs(VertexZ-vpdVz)>3.)return false;       // no vpd cut in low energy?
 
   //if(fabs(VertexZ) > mTreeCut::mVzMaxMap[mEnergy]) return kStOK; 
   //if(sqrt(pow(VertexX-mTreeCut::mVxMap[mEnergy],2.)+pow(VertexY-mTreeCut::mVyMap[mEnergy],2.))>mTreeCut::mVrMaxMap[mEnergy])return kStOK; 
@@ -502,7 +502,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //check run number
   int runnumberPointer = -999;
   runnumberPointer=CheckrunNumber(runID);
-  if(runnumberPointer == -999)return kStOK;
+  if(runnumberPointer == -999)return false;
 
   int dayPointer = (int)((runID)/1000%1000);
   int mRunL=mRunList.at(0);
@@ -525,7 +525,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //
   int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
   //
-  if( centrality<0||centrality>=(nCent-1)) return kStOK;
+  if( centrality<0||centrality>=(nCent-1)) return false;
   int cent = centrality+1;  
   // //cout<<refMult<<" "<<cent<<" "<<mRefMultCorr->getCentralityBin16()<<endl;
   //
@@ -535,7 +535,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //
   if(wCentSC[cent]<1.){
   	double mRand=gRandom->Rndm();
-  	if(mRand>wCentSC[cent]) return kStOK;
+  	if(mRand>wCentSC[cent]) return false;
   }
 
   mWght/=wCentSC[cent];
@@ -544,8 +544,9 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   double wVz=2.0*mVz/nVz;
   int    iVz=(VertexZ+mVz)/wVz;
   //cout<<wVz<<" "<<iVz<<endl;
-  if(iVz<0||iVz>=nVz) return kStOK;
+  if(iVz<0||iVz>=nVz) return false;
 
+  return true;
 
 }
 bool StMyAnalysisMaker::readRunList()
@@ -591,5 +592,11 @@ Int_t StMyAnalysisMaker::CheckrunNumber(int runnumber) const
 	if(pointer==-999)cout<<"Run number are not found! "<<runnumber<<endl;
 	return pointer;
 } 
-
+//-----------------------------------------------------------------------------
+// void StMyAnalysisMaker::setRunEnergyAndListDir(int run, double energy,char ListDir[256])
+// {
+// 	mRun    =run;
+// 	mEnergy =energy;
+// 	mListDir=ListDir;
+// }
 

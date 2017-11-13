@@ -76,6 +76,7 @@ class StMyAnalysisMaker : public StMaker {
     virtual Int_t Make();
     virtual void  Clear(Option_t *opt="");
     virtual Int_t Finish();
+		void    setRunEnergyAndListDir(int run,double energy,char ListDir[256]);            
 
     void    DeclareHistograms();
     void    WriteHistograms();
