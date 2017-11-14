@@ -681,6 +681,11 @@ Int_t mZDCSMD::ReadZDCSMDFile(TFile* pZDCSMDConstFile) {
 			mZDCSMDCenterWx[iRun] = -1.*mZDCSMDBeamCenter2D->GetBinContent(3,iRun+1);
 			//mZDCSMDCenterWx[iRun] = mZDCSMDBeamCenter2D->GetBinContent(3,iRun+1);
 			mZDCSMDCenterWy[iRun] = mZDCSMDBeamCenter2D->GetBinContent(4,iRun+1);
+
+			if(fabs(mZDCSMDCenterEx[iRun]-zdcsmd_ex0)>3.0)mZDCSMDCenterEx[iRun] = zdcsmd_ex0;;
+			if(fabs(mZDCSMDCenterEy[iRun]-zdcsmd_ey0)>3.0)mZDCSMDCenterEy[iRun] = zdcsmd_ey0;;
+			if(fabs(mZDCSMDCenterWx[iRun]-zdcsmd_wx0)>3.0)mZDCSMDCenterWx[iRun] = zdcsmd_wx0;;
+			if(fabs(mZDCSMDCenterWy[iRun]-zdcsmd_wy0)>3.0)mZDCSMDCenterWy[iRun] = zdcsmd_wy0;;
 		}
 	} else {
 		for(int iRun=0;iRun<totalRunNumber;iRun++){

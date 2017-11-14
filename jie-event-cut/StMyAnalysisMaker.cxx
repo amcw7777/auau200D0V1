@@ -31,17 +31,17 @@
 
 //
 ClassImp(StMyAnalysisMaker)
-  StRefMultCorr* StMyAnalysisMaker::mRefMultCorr = NULL;
-  //-----------------------------------------------------------------------------
-  StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName)
-: StMaker(name)
+	StRefMultCorr* StMyAnalysisMaker::mRefMultCorr = NULL;
+//-----------------------------------------------------------------------------
+StMyAnalysisMaker::StMyAnalysisMaker(const char* name, StPicoDstMaker *picoMaker, const char* outName)
+  : StMaker(name)
 {
   mPicoDstMaker = picoMaker;
   mPicoDst = 0;
   mOutName = outName;
-  mRun    = 16;
-  mEnergy =200;
-  mListDir="./";
+	mRun    =0;
+	mEnergy =0;
+	mListDir="./";
 }
 
 //----------------------------------------------------------------------------- 
@@ -51,30 +51,30 @@ StMyAnalysisMaker::~StMyAnalysisMaker()
 //----------------------------------------------------------------------------- 
 Int_t StMyAnalysisMaker::Init() {
   DeclareHistograms();
-  PI   = 3.14159;
-  twoPI= 2.*PI;
-  mPrevRunId=-999;
-  mTempRunId=-999;
-  mTempEvtId=-999;
+	PI   = 3.14159;
+	twoPI= 2.*PI;
+	mPrevRunId=-999;
+	mTempRunId=-999;
+	mTempEvtId=-999;
 
-  mBadList.clear();
-  mRunList.clear();
+	mBadList.clear();
+	mRunList.clear();
 
-  if(!readRunList())return kStFatal;
-  if(!readBadList())return kStFatal;
+	if(!readRunList())return kStFatal;
+	if(!readBadList())return kStFatal;
 
-  miniZDCSMD=new mZDCSMD();
-  // phiweight and shift are two independent method here!
-  // pedgain 1,  beam center 2,  phiweight + shift (subevent) 3,  Fullevent 4,  ready+wQAHists 5,  ready+woQAHists 6 
-  miniZDCSMD->SetFileDirectory("/star/u/amcw7777/d0V1AuAu2016/ZDCSMDFile");
-  if(!(miniZDCSMD->InitRun(6)))return kStFatal;  
-  miniZDCSMD->SetmHistFileName(mOutName);
-  if(!mRefMultCorr){
-    mRefMultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id() ;
-    mRefMultCorr->setVzForWeight(6, -6.0, 6.0);
-    mRefMultCorr->readScaleForWeight("StRoot/StRefMultCorr/macros/weight_grefmult_VpdnoVtx_Vpd5_Run16.txt");
-    /////////////////////////////////////
-    // mGRefMultCorrUtil = new StRefMultCorr("grefmult");
+	miniZDCSMD=new mZDCSMD();
+	// phiweight and shift are two independent method here!
+	// pedgain 1,  beam center 2,  phiweight + shift (subevent) 3,  Fullevent 4,  ready+wQAHists 5,  ready+woQAHists 6 
+	miniZDCSMD->SetFileDirectory("/star/u/amcw7777/d0V1AuAu2016/ZDCSMDFile");
+	if(!(miniZDCSMD->InitRun(6)))return kStFatal;  
+	miniZDCSMD->SetmHistFileName(mOutName);
+	if(!mRefMultCorr){
+		mRefMultCorr = CentralityMaker::instance()->getgRefMultCorr_P16id() ;
+		mRefMultCorr->setVzForWeight(6, -6.0, 6.0);
+		mRefMultCorr->readScaleForWeight("StRoot/StRefMultCorr/macros/weight_grefmult_VpdnoVtx_Vpd5_Run16.txt");
+	/////////////////////////////////////
+  // mGRefMultCorrUtil = new StRefMultCorr("grefmult");
   }
 
   d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",500,1.6,2.1,4,0,PI,4,-1,1);
@@ -97,7 +97,7 @@ Int_t StMyAnalysisMaker::Finish() {
     fout->Write();
     fout->Close();
   }
-
+	
   return kStOK;
 }
 
@@ -134,16 +134,15 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
   StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
-  const int  runID    = event->runId();
-  const int  evtID    = event->eventId();
-  const int refMult  = event->grefMult();
+	const int  runID    = event->runId();
+	const int  evtID    = event->eventId();
+	const int refMult  = event->grefMult();
   if(!(isGoodEvent(event)))
   { 
     // LOG_WARN << " Not Min Bias! Skip! " << endm;
     return kStWarn;
   }
 
-  cout<<"this is a good event!"<<endl;
   if(!mGRefMultCorrUtil) {
     LOG_WARN << " No mGRefMultCorrUtil! Skip! " << endl;
     return kStWarn;
@@ -155,20 +154,20 @@ Int_t StMyAnalysisMaker::Make() {
   double vz = vtx.z();
   // if( fabs(vz)>6 && fabs(vz-vpdvz)>3 ) 
   //   return kStWarn;
-  //StRefMultCorr
-  // if ( runID != mPrevRunId ) {
-  // 	mRefMultCorr->init(runID);
-  // 	mPrevRunId = runID;
-  // 	cout << "reset mPrevRunId = " << mPrevRunId << endl;
-  // }
-  // //mRefMultCorr->initEvent(refMult,VertexZ);
-  // mRefMultCorr->initEvent(refMult,vz,event->ZDCx());
+	//StRefMultCorr
+	// if ( runID != mPrevRunId ) {
+	// 	mRefMultCorr->init(runID);
+	// 	mPrevRunId = runID;
+	// 	cout << "reset mPrevRunId = " << mPrevRunId << endl;
+	// }
+	// //mRefMultCorr->initEvent(refMult,VertexZ);
+	// mRefMultCorr->initEvent(refMult,vz,event->ZDCx());
   //
-  int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
-  // double mWght    = mRefMultCorr->getWeight();
+	int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
+	// double mWght    = mRefMultCorr->getWeight();
   //
-  // if( centrality<0||centrality>=(nCent-1)) return kStOK;
-  // if( centrality<2||centrality>6) return kStOK; // 10 - 60 % centrality
+	// if( centrality<0||centrality>=(nCent-1)) return kStOK;
+	// if( centrality<2||centrality>6) return kStOK; // 10 - 60 % centrality
   // Bin       Centrality (16)   Centrality (9)
   //     -1           80-100%           80-100% // this one should be rejected in your centrality related analysis
   //     0            75-80%            70-80%
@@ -184,32 +183,32 @@ Int_t StMyAnalysisMaker::Make() {
   //cout<<refMult<<" "<<cent<<" "<<mRefMultCorr->getCentralityBin16()<<endl;
 
 
-  ////////////  ZDCSMD ////////////////
-  float ZDCSMDadc[32];
-  for(int i=0;i<8;i++){
-    ZDCSMDadc[i]   = 1.* event->ZdcSmdEastHorizontal(i);   // picoDst function i 0-7
-    ZDCSMDadc[i+8] = 1.* event->ZdcSmdEastVertical(i);
-    ZDCSMDadc[i+16]= 1.* event->ZdcSmdWestHorizontal(i);
-    ZDCSMDadc[i+24]= 1.* event->ZdcSmdWestVertical(i);
-  }
+	////////////  ZDCSMD ////////////////
+	float ZDCSMDadc[32];
+	for(int i=0;i<8;i++){
+		ZDCSMDadc[i]   = 1.* event->ZdcSmdEastHorizontal(i);   // picoDst function i 0-7
+		ZDCSMDadc[i+8] = 1.* event->ZdcSmdEastVertical(i);
+		ZDCSMDadc[i+16]= 1.* event->ZdcSmdWestHorizontal(i);
+		ZDCSMDadc[i+24]= 1.* event->ZdcSmdWestVertical(i);
+	}
 
 
-  miniZDCSMD->InitEvent();
-  //miniZDCSMD->SetZDCSMDrefm(ZDCSMDadc,mult_corr,runID);;
-  miniZDCSMD->SetZDCSMDcent(ZDCSMDadc,cent,runID);
-  if(miniZDCSMD->ZDCSMDbadrun())return kStOK;
-  miniZDCSMD->calibrateZDCSMDevp();
-  if(!(miniZDCSMD->ZDCSMDgoodEvent()))return kStOK;
-  //int mMod=miniZDCSMD->GetMod();
+	miniZDCSMD->InitEvent();
+	//miniZDCSMD->SetZDCSMDrefm(ZDCSMDadc,mult_corr,runID);;
+	miniZDCSMD->SetZDCSMDcent(ZDCSMDadc,cent,runID);
+	if(miniZDCSMD->ZDCSMDbadrun())return kStOK;
+	miniZDCSMD->calibrateZDCSMDevp();
+	if(!(miniZDCSMD->ZDCSMDgoodEvent()))return kStOK;
+	//int mMod=miniZDCSMD->GetMod();
 
-  float mZDC1Event_PsiF = miniZDCSMD->GetZDCSMD_PsiFulSS(); 
-  float mZDC1Event_PsiOrigin = miniZDCSMD->GetZDCSMD_PsiFull(); 
-  float mZDC1Event_PsiW = miniZDCSMD->GetZDCSMD_PsiWestS();
-  float mZDC1Event_PsiE = miniZDCSMD->GetZDCSMD_PsiEastS();
+	float mZDC1Event_PsiF = miniZDCSMD->GetZDCSMD_PsiFulSS(); 
+	float mZDC1Event_PsiOrigin = miniZDCSMD->GetZDCSMD_PsiFull(); 
+	float mZDC1Event_PsiW = miniZDCSMD->GetZDCSMD_PsiWestS();
+	float mZDC1Event_PsiE = miniZDCSMD->GetZDCSMD_PsiEastS();
 
-  if(mZDC1Event_PsiF<0.)    mZDC1Event_PsiF+=twoPI;
-  if(mZDC1Event_PsiW<0.)    mZDC1Event_PsiW+=twoPI;
-  if(mZDC1Event_PsiE<0.)    mZDC1Event_PsiE+=twoPI;
+	if(mZDC1Event_PsiF<0.)    mZDC1Event_PsiF+=twoPI;
+	if(mZDC1Event_PsiW<0.)    mZDC1Event_PsiW+=twoPI;
+	if(mZDC1Event_PsiE<0.)    mZDC1Event_PsiE+=twoPI;
   if(mZDC1Event_PsiF>twoPI) mZDC1Event_PsiF-=twoPI;
   if(mZDC1Event_PsiW>twoPI) mZDC1Event_PsiW-=twoPI;
   if(mZDC1Event_PsiE>twoPI) mZDC1Event_PsiE-=twoPI;
@@ -241,15 +240,15 @@ Int_t StMyAnalysisMaker::Make() {
   {
     if(centrality!=4) continue;
     StPicoTrack const* itrk = mPicoDst->track(pionIndex[i]);
-    StThreeVectorF mom= itrk->gMom();
-    double p    = mom.mag();
-    double pt   = mom.perp();
-    double eta  = mom.pseudoRapidity();
-    double phi  = mom.phi();
-    if(phi<0.0) phi += twoPI;
-    double mcos1=cos(phi);
-    double msin1=sin(phi);
-    double v1ZDC1F = mcos1*cos(1.*mZDC1Event_PsiF) + msin1*sin(1.*mZDC1Event_PsiF);
+		StThreeVectorF mom= itrk->gMom();
+		double p    = mom.mag();
+		double pt   = mom.perp();
+		double eta  = mom.pseudoRapidity();
+		double phi  = mom.phi();
+		if(phi<0.0) phi += twoPI;
+		double mcos1=cos(phi);
+		double msin1=sin(phi);
+		double v1ZDC1F = mcos1*cos(1.*mZDC1Event_PsiF) + msin1*sin(1.*mZDC1Event_PsiF);
     int charge = itrk->charge();
     if(charge > 0)
       pionV1Plus->Fill(eta,v1ZDC1F,mWght);
@@ -264,23 +263,23 @@ Int_t StMyAnalysisMaker::Make() {
     for(int j=0;j<kaonIndex.size();j++)
     {
       StPicoTrack const* jtrk = mPicoDst->track(kaonIndex[j]);
-      int charge = itrk->charge() * jtrk->charge();
-      StKaonPion *kp = new StKaonPion(jtrk,itrk,j,i,vtx,b);
-      // if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
-      if(charge>0) continue;//only unlike-sign pairs
-      StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
-      StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
+       int charge = itrk->charge() * jtrk->charge();
+       StKaonPion *kp = new StKaonPion(jtrk,itrk,j,i,vtx,b);
+       // if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
+       if(charge>0) continue;//only unlike-sign pairs
+       StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
+       StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
 
-      int isBar = isD0Pair(kp);
-      if(isBar != 0)
-        cout<<"find D0 !"<<endl;
-      if(isBar>0)
-        d0MassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
-      if(isBar<0)
-        d0BarMassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
-      delete kp;
-    }
-  }
+       int isBar = isD0Pair(kp);
+       if(isBar != 0)
+         cout<<"find D0 !"<<endl;
+       if(isBar>0)
+         d0MassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
+       if(isBar<0)
+         d0BarMassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
+       delete kp;
+     }
+   }
 
 
   return kStOK;
@@ -414,42 +413,42 @@ bool StMyAnalysisMaker::isGoodHadron(StPicoTrack const * const trk) const
 
 bool StMyAnalysisMaker::removeBadID(int runnumber) const
 {
-  // for (std::vector<int>::iterator it=mBadList.begin(); it!=mBadList.end(); ++it) 
-  for (auto it=mBadList.begin(); it!=mBadList.end(); ++it) 
-  { 
-    if(runnumber==*it){
-      cout<<runnumber<<"is a bad run!!!"<<endl; 
-      return kTRUE;
-    }
-  }
+	// for (std::vector<int>::iterator it=mBadList.begin(); it!=mBadList.end(); ++it) 
+	for (auto it=mBadList.begin(); it!=mBadList.end(); ++it) 
+	{ 
+		if(runnumber==*it){
+			cout<<runnumber<<"is a bad run!!!"<<endl; 
+			return kTRUE;
+		}
+	}
 
-  return kFALSE;
+	return kFALSE;
 }  
 
 //-----------------------------------------------------------------------------
 bool StMyAnalysisMaker::readBadList()
 { 
-  if(0) return kTRUE;
-  TString inf=mListDir + "/badList/";
-  inf += Form("badrun%dList%.1f.list",mRun,mEnergy);
-  ifstream inrun; 
-  inrun.open(inf);
-  if ( inrun.fail() ) {
-    cout<< "cannot open " << inf.Data() << endl;
-    return kFALSE;
-  }
-  Int_t runid;
-  while ( inrun >> runid ) { mBadList.push_back(runid); }
-  inrun.close();
-  sort(mBadList.begin(),mBadList.end());
+	if(0) return kTRUE;
+	TString inf=mListDir + "/badList/";
+	inf += Form("badrun%dList%.1f.list",mRun,mEnergy);
+	ifstream inrun; 
+	inrun.open(inf);
+	if ( inrun.fail() ) {
+		cout<< "cannot open " << inf.Data() << endl;
+		return kFALSE;
+	}
+	Int_t runid;
+	while ( inrun >> runid ) { mBadList.push_back(runid); }
+	inrun.close();
+	sort(mBadList.begin(),mBadList.end());
 
-  vector<int>::iterator it;
-  it = std::unique (mBadList.begin(), mBadList.end());
-  mBadList.resize( std::distance(mBadList.begin(),it) );
+	vector<int>::iterator it;
+	it = std::unique (mBadList.begin(), mBadList.end());
+	mBadList.resize( std::distance(mBadList.begin(),it) );
 
-  cout <<"badrun list :" <<inf.Data() << " loaded." << endl;
-  cout <<"Total       :" <<mBadList.size()<< " bad runs. "<< endl;
-  return kTRUE;
+	cout <<"badrun list :" <<inf.Data() << " loaded." << endl;
+	cout <<"Total       :" <<mBadList.size()<< " bad runs. "<< endl;
+	return kTRUE;
 }
 //------------------------------------------------------------------------------
 bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
@@ -467,13 +466,12 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
       &&(!mEvent->isTrigger(520031))
       &&(!mEvent->isTrigger(520041))
       &&(!mEvent->isTrigger(520051))
-    )
-    return false; 
+    )return kStOK; 
 
 
   // remove duplicate events
   ////////////////////////////////////
-  if(mTempRunId==runID&&mTempEvtId==evtID)return false;
+  if(mTempRunId==runID&&mTempEvtId==evtID)return kStOK;
   mTempRunId=runID;  mTempEvtId=evtID;
   ////////////////////////////////////
 
@@ -484,16 +482,18 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   const double vpdVz   = mEvent->vzVpd();
 
   //event cut
-  if(refMult <=2 || refMult > 1000) return false;
-  if(removeBadID(runID))return false;            
-  if(fabs(VertexZ) > 100) return false; 
+  if(refMult <=2 || refMult > 1000) return kStOK;
+  //if(mEnergy<200&&!mEvent->isMinBias())return kStOK;    // run11 200 isMinBias() returns only vpd-zdc-mb-protected 
+  if(removeBadID(runID))return kStOK;            
+  //if(mRefMultCorr->isBadRun(runID))return kStOK;
+  if(fabs(VertexZ) > 100) return kStOK; 
 
   // hVertex2D ->Fill(VertexZ,vpdVz);
   // hDiffVz   ->Fill(VertexZ-vpdVz); 
 
-  if(fabs(VertexZ) > 6) return false; 
-  if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return false; 
-  if(fabs(VertexZ-vpdVz)>3.)return false;       // no vpd cut in low energy?
+  if(fabs(VertexZ) > 6) return kStOK; 
+  if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return kStOK; 
+  if(fabs(VertexZ-vpdVz)>3.)return kStOK;       // no vpd cut in low energy?
 
   //if(fabs(VertexZ) > mTreeCut::mVzMaxMap[mEnergy]) return kStOK; 
   //if(sqrt(pow(VertexX-mTreeCut::mVxMap[mEnergy],2.)+pow(VertexY-mTreeCut::mVyMap[mEnergy],2.))>mTreeCut::mVrMaxMap[mEnergy])return kStOK; 
@@ -502,7 +502,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //check run number
   int runnumberPointer = -999;
   runnumberPointer=CheckrunNumber(runID);
-  if(runnumberPointer == -999)return false;
+  if(runnumberPointer == -999)return kStOK;
 
   int dayPointer = (int)((runID)/1000%1000);
   int mRunL=mRunList.at(0);
@@ -525,7 +525,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //
   int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
   //
-  if( centrality<0||centrality>=(nCent-1)) return false;
+  if( centrality<0||centrality>=(nCent-1)) return kStOK;
   int cent = centrality+1;  
   // //cout<<refMult<<" "<<cent<<" "<<mRefMultCorr->getCentralityBin16()<<endl;
   //
@@ -534,8 +534,8 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //double wCentSC[nCent]={-999, 1.,    1.,    1.,    1.,    1.,    1.,    1.,   1.,  1.,};
   //
   if(wCentSC[cent]<1.){
-    double mRand=gRandom->Rndm();
-    if(mRand>wCentSC[cent]) return false;
+  	double mRand=gRandom->Rndm();
+  	if(mRand>wCentSC[cent]) return kStOK;
   }
 
   mWght/=wCentSC[cent];
@@ -544,59 +544,52 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   double wVz=2.0*mVz/nVz;
   int    iVz=(VertexZ+mVz)/wVz;
   //cout<<wVz<<" "<<iVz<<endl;
-  if(iVz<0||iVz>=nVz) return false;
+  if(iVz<0||iVz>=nVz) return kStOK;
 
-  return true;
 
 }
 bool StMyAnalysisMaker::readRunList()
 { 
-  if(0) return kTRUE;
+	if(0) return kTRUE;
   // cout<<"Excuting readRunList function!"<<endl;
-  TString inf=mListDir + "runList/";
-  inf += Form("run%dList%.1f.list",mRun,mEnergy);
-  ifstream inrun; 
+	TString inf=mListDir + "runList/";
+	inf += Form("run%dList%.1f.list",mRun,mEnergy);
+	ifstream inrun; 
   cout<<"file is located at: "<<inf<<endl;
-  inrun.open(inf);
-  if ( inrun.fail() ) {
-    cout<< "cannot open " << inf.Data() << endl;
-    return kFALSE;
-  }
-  Int_t runid;
-  while ( inrun >> runid ) { mRunList.push_back(runid); }
-  inrun.close();
-  sort(mRunList.begin(),mRunList.end());
+	inrun.open(inf);
+	if ( inrun.fail() ) {
+		cout<< "cannot open " << inf.Data() << endl;
+		return kFALSE;
+	}
+	Int_t runid;
+	while ( inrun >> runid ) { mRunList.push_back(runid); }
+	inrun.close();
+	sort(mRunList.begin(),mRunList.end());
 
-  vector<int>::iterator it;
-  it = std::unique (mRunList.begin(), mRunList.end());
-  mRunList.resize( std::distance(mRunList.begin(),it) );
+	vector<int>::iterator it;
+	it = std::unique (mRunList.begin(), mRunList.end());
+	mRunList.resize( std::distance(mRunList.begin(),it) );
 
-  cout <<"Run list :" <<inf.Data() << " loaded. "<< endl;
-  cout <<"Total    :" <<mRunList.size()<< " runs. "<< endl;
+	cout <<"Run list :" <<inf.Data() << " loaded. "<< endl;
+	cout <<"Total    :" <<mRunList.size()<< " runs. "<< endl;
 
-  if(mRunList.size()<1){cout<<"no run number found!!!"<<endl; return kFALSE;}
+	if(mRunList.size()<1){cout<<"no run number found!!!"<<endl; return kFALSE;}
 
-  return kTRUE;
+	return kTRUE;
 }
 //-----------------------------------------------------------------------------
 Int_t StMyAnalysisMaker::CheckrunNumber(int runnumber) const
 {    
-  int pointer=-999; 
-  int id=0; 
-  for (auto it=mRunList.begin(); it!=mRunList.end(); ++it) 
-  { 
-    if(runnumber==*it)pointer=id;
-    id++;
-  }
+	int pointer=-999; 
+	int id=0; 
+	for (auto it=mRunList.begin(); it!=mRunList.end(); ++it) 
+	{ 
+		if(runnumber==*it)pointer=id;
+		id++;
+	}
 
-  if(pointer==-999)cout<<"Run number are not found! "<<runnumber<<endl;
-  return pointer;
+	if(pointer==-999)cout<<"Run number are not found! "<<runnumber<<endl;
+	return pointer;
 } 
-//-----------------------------------------------------------------------------
-// void StMyAnalysisMaker::setRunEnergyAndListDir(int run, double energy,char ListDir[256])
-// {
-// 	mRun    =run;
-// 	mEnergy =energy;
-// 	mListDir=ListDir;
-// }
+
 
