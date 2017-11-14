@@ -94,6 +94,7 @@ class StMyAnalysisMaker : public StMaker {
     mZDCSMD *miniZDCSMD;
     bool isGoodEvent();
     bool  isGoodTrack(StPicoTrack const*) const;
+    bool  isGoodTof(StPicoTrack const*) const;
     bool  isGoodEvent(StPicoEvent const*);
     bool  isTpcPion(StPicoTrack const*) const;
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
@@ -116,6 +117,7 @@ class StMyAnalysisMaker : public StMaker {
     double     mEnergy;            
     double     mWght;            
     TString    mListDir;            
+    TH2D *d0MassPt;
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
     bool  readBadList();            
@@ -126,6 +128,7 @@ class StMyAnalysisMaker : public StMaker {
     TH1D *zdcPsi_corr;
     TProfile *pionV1Plus;
     TProfile *pionV1Minus;
+    TProfile *zdcResolution;
 
     //
     //	//StKFVertexMaker private

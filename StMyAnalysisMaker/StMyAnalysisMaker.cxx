@@ -78,13 +78,16 @@ Int_t StMyAnalysisMaker::Init() {
   }
 
   d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",500,1.6,2.1,4,0,PI,4,-1,1);
+  d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",500,1.6,2.1,10,0,10);
   d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",500,1.6,2.1,4,0,PI,4,-1,1);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
   zdcPsi_corr = new TH1D("zdcPsi_corr",";#psi_{ZDC}",1000,0,twoPI);
   pionV1Plus = new TProfile("pionV1Plus","",48,-1.2,1.2);
   pionV1Minus = new TProfile("pionV1Minus","",48,-1.2,1.2);
+  zdcResolution = new TProfile("zdcResolution","",10,0,10);
   pionV1Plus->Sumw2();
   pionV1Minus->Sumw2();
+  zdcResolution->Sumw2();
   return kStOK;
 }
 
@@ -110,10 +113,12 @@ void StMyAnalysisMaker::DeclareHistograms() {
 void StMyAnalysisMaker::WriteHistograms() {
   d0MassPhiEta->Write();
   d0BarMassPhiEta->Write();
+  d0MassPt->Write();
   zdcPsi->Write();
   zdcPsi_corr->Write();
   pionV1Plus->Write();
   pionV1Minus->Write();
+  zdcResolution->Write();
 }
 
 
@@ -135,8 +140,8 @@ Int_t StMyAnalysisMaker::Make() {
   }
   StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
   const int  runID    = event->runId();
-  const int  evtID    = event->eventId();
-  const int refMult  = event->grefMult();
+  // const int  evtID    = event->eventId();
+  // const int refMult  = event->grefMult();
   if(!(isGoodEvent(event)))
   { 
     // LOG_WARN << " Not Min Bias! Skip! " << endm;
@@ -151,8 +156,8 @@ Int_t StMyAnalysisMaker::Make() {
 
   StThreeVectorF vtx = event->primaryVertex();
   float b = event->bField();
-  double vpdvz = mPicoDst->event()->vzVpd();
-  double vz = vtx.z();
+  // double vpdvz = mPicoDst->event()->vzVpd();
+  // double vz = vtx.z();
   // if( fabs(vz)>6 && fabs(vz-vpdvz)>3 ) 
   //   return kStWarn;
   //StRefMultCorr
@@ -217,33 +222,41 @@ Int_t StMyAnalysisMaker::Make() {
 
   zdcPsi->Fill(mZDC1Event_PsiOrigin,mWght);
   zdcPsi_corr->Fill(mZDC1Event_PsiF,mWght);
+	zdcResolution->Fill(cent,cos(1.*(mZDC1Event_PsiE-mZDC1Event_PsiW+PI))); 
+	zdcResolution->Fill(0.,cos(1.*(mZDC1Event_PsiE-mZDC1Event_PsiW+PI))); 
 
   vector<int> kaonIndex;
   vector<int> pionIndex;
   kaonIndex.clear();
   pionIndex.clear();
-  for(int i=0;i<mPicoDst->numberOfTracks();i++)
+  for(unsigned int i=0;i<mPicoDst->numberOfTracks();i++)
   {
     StPicoTrack const* itrk = mPicoDst->track(i);
     if(!isGoodTrack(itrk))  continue;
+    // cout<<"good track #1"<<endl;
     if(!(itrk->isHft())) continue;
+    // cout<<"good track #2"<<endl;
+    if(!isGoodTof(itrk))  continue;
+    // cout<<"good track #3"<<endl;
+
     if (isTpcPion(itrk)) 
       pionIndex.push_back(i);
     bool tpcKaon = isTpcKaon(itrk,&vtx);
     float kBeta = getTofBeta(itrk,&vtx);
     bool tofAvailable = kBeta>0;
     bool tofKaon = tofAvailable && isTofKaon(itrk,kBeta);
+
     bool goodKaon = (tofAvailable && tofKaon) || (!tofAvailable && tpcKaon);
     if(goodKaon) 
       kaonIndex.push_back(i);
   }
-  for(int i=0;i<pionIndex.size();i++)
+  for(unsigned int i=0;i<pionIndex.size();i++)
   {
     if(centrality!=4) continue;
     StPicoTrack const* itrk = mPicoDst->track(pionIndex[i]);
     StThreeVectorF mom= itrk->gMom();
-    double p    = mom.mag();
-    double pt   = mom.perp();
+    // double p    = mom.mag();
+    // double pt   = mom.perp();
     double eta  = mom.pseudoRapidity();
     double phi  = mom.phi();
     if(phi<0.0) phi += twoPI;
@@ -258,25 +271,27 @@ Int_t StMyAnalysisMaker::Make() {
   }
 
 
-  for(int i=0;i<pionIndex.size();i++)
+  for(unsigned int i=0;i<pionIndex.size();i++)
   {
-    StPicoTrack const* itrk = mPicoDst->track(pionIndex[i]);
-    for(int j=0;j<kaonIndex.size();j++)
+    StPicoTrack const* pion= mPicoDst->track(pionIndex[i]);
+    for(unsigned int j=0;j<kaonIndex.size();j++)
     {
-      StPicoTrack const* jtrk = mPicoDst->track(kaonIndex[j]);
-      int charge = itrk->charge() * jtrk->charge();
-      StKaonPion *kp = new StKaonPion(jtrk,itrk,j,i,vtx,b);
+      StPicoTrack const* kaon= mPicoDst->track(kaonIndex[j]);
+      int charge = pion->charge() * kaon->charge();
+      StKaonPion *kp = new StKaonPion(kaon,pion,j,i,vtx,b);
       // if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
       if(charge>0) continue;//only unlike-sign pairs
-      StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
-      StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
+      // StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
+      // StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
 
-      int isBar = isD0Pair(kp);
-      if(isBar != 0)
-        cout<<"find D0 !"<<endl;
-      if(isBar>0)
+      int isD0= isD0Pair(kp);
+      if(isD0==0)
+        continue;
+      cout<<"find D0 !"<<endl;
+      d0MassPt->Fill(kp->m(),kp->pt());
+      if(kaon->charge() < 0)
         d0MassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
-      if(isBar<0)
+      if(kaon->charge() > 0)
         d0BarMassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
       delete kp;
     }
@@ -352,16 +367,24 @@ bool StMyAnalysisMaker::isGoodTrack(StPicoTrack const * const trk) const
   // Require at least one hit on every layer of PXL and IST.
   // It is done here for tests on the preview II data.
   // The new StPicoTrack which is used in official production has a method to check this
-  return trk->gPt() > mycuts::minPt && trk->nHitsFit() >= mycuts::nHitsFit && trk->isHFTTrack();
+  return trk->gPt() > 0.2 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
   //return  trk->nHitsFit() >= mycuts::nHitsFit;
 }
+bool StMyAnalysisMaker::isGoodTof(StPicoTrack const * const trk) const
+{
+  int index2tof = trk->bTofPidTraitsIndex();
+  if(index2tof < 0) return false;
+  StPicoBTofPidTraits *tofPid = mPicoDstMaker->picoDst()->btofPidTraits(index2tof);
+  return tofPid->btofMatchFlag() > 0 && fabs(tofPid->btofYLocal()) < 1.8 && tofPid->btofBeta() > 0;
+}
+
 
 int StMyAnalysisMaker::isD0Pair(StKaonPion const* const kp) const
 {
 
-  StPicoDst const* picoDst = mPicoDstMaker->picoDst();
-  StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
-  StPicoTrack const* pion = picoDst->track(kp->pionIdx());
+  // StPicoDst const* picoDst = mPicoDstMaker->picoDst();
+  // StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
+  // StPicoTrack const* pion = picoDst->track(kp->pionIdx());
   TLorentzVector d0Lorentz;
   d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
   if(fabs(d0Lorentz.Rapidity())>1.) return 0;
@@ -400,7 +423,8 @@ int StMyAnalysisMaker::isD0Pair(StKaonPion const* const kp) const
   // if(charge>0)
   //   charge = kaon->charge()>0 ? 1:2;
   if(pairCuts)
-    return -1 * kaon->charge();
+    // return -1 * kaon->charge();
+    return 1;
   else
     return 0;
 }
@@ -458,8 +482,8 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   const int  runID    = mEvent->runId();
   const int  evtID    = mEvent->eventId();
   const int  refMult  = mEvent->grefMult();
-  const int grefMult  = mEvent->grefMult();
-  const int  ranking  = mEvent->ranking();
+  // const int grefMult  = mEvent->grefMult();
+  // const int  ranking  = mEvent->ranking();
 
   if((!mEvent->isTrigger(520001))
       &&(!mEvent->isTrigger(520011))
@@ -521,7 +545,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   // //mRefMultCorr->initEvent(refMult,VertexZ);
   mRefMultCorr->initEvent(refMult,VertexZ,mEvent->ZDCx());
   mWght    = mRefMultCorr->getWeight();
-  double mult_corr= mRefMultCorr->getRefMultCorr() ;
+  // double mult_corr= mRefMultCorr->getRefMultCorr() ;
   //
   int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
   //
