@@ -78,7 +78,7 @@ Int_t StMyAnalysisMaker::Init() {
   }
 
   d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",500,1.6,2.1,4,0,PI,4,-1,1);
-  d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",500,1.6,2.1,10,0,10);
+  d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",500,1.6,2.1,100,0,10);
   d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",500,1.6,2.1,4,0,PI,4,-1,1);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
   zdcPsi_corr = new TH1D("zdcPsi_corr",";#psi_{ZDC}",1000,0,twoPI);
@@ -148,7 +148,7 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
-  cout<<"this is a good event!"<<endl;
+  // cout<<"this is a good event!"<<endl;
   if(!mGRefMultCorrUtil) {
     LOG_WARN << " No mGRefMultCorrUtil! Skip! " << endl;
     return kStWarn;
@@ -279,7 +279,7 @@ Int_t StMyAnalysisMaker::Make() {
       StPicoTrack const* kaon= mPicoDst->track(kaonIndex[j]);
       int charge = pion->charge() * kaon->charge();
       StKaonPion *kp = new StKaonPion(kaon,pion,j,i,vtx,b);
-      // if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
+      if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
       if(charge>0) continue;//only unlike-sign pairs
       // StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
       // StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
@@ -287,12 +287,16 @@ Int_t StMyAnalysisMaker::Make() {
       int isD0= isD0Pair(kp);
       if(isD0==0)
         continue;
-      cout<<"find D0 !"<<endl;
+      // cout<<"find D0 !"<<endl;
       d0MassPt->Fill(kp->m(),kp->pt());
+      double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
+      if(deltaPhi > PI)
+        deltaPhi = twoPI - deltaPhi;
+      // cout<<"deltaPhi = "<<deltaPhi<<endl;
       if(kaon->charge() < 0)
-        d0MassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
+        d0MassPhiEta->Fill(kp->m(),deltaPhi,kp->eta(),mWght);
       if(kaon->charge() > 0)
-        d0BarMassPhiEta->Fill(kp->m(),kp->phi()-mZDC1Event_PsiF,kp->eta(),mWght);
+        d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kp->eta(),mWght);
       delete kp;
     }
   }
