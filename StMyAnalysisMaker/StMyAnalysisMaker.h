@@ -129,6 +129,9 @@ class StMyAnalysisMaker : public StMaker {
     TProfile *pionV1Plus;
     TProfile *pionV1Minus;
     TProfile *zdcResolution;
+    TH1D *testTrack;
+    TH2D *trackPhiEta;
+    TH2D *trackPhiEtaHFT;
 
     //
     //	//StKFVertexMaker private
