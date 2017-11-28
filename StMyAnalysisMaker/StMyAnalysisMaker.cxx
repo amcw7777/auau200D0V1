@@ -249,7 +249,9 @@ Int_t StMyAnalysisMaker::Make() {
       testPionIndex.push_back(i);
     if(!(itrk->isHft())) continue;
     trackPhiEtaHFT->Fill(phi,eta);
+    testTrack->Fill(1);
     // if(!isGoodTof(itrk))  continue;
+    testTrack->Fill(2);
 
     if (isTpcPion(itrk)) 
       pionIndex.push_back(i);
@@ -292,8 +294,8 @@ Int_t StMyAnalysisMaker::Make() {
       StPicoTrack const* kaon= mPicoDst->track(kaonIndex[j]);
       int charge = pion->charge() * kaon->charge();
       StKaonPion *kp = new StKaonPion(kaon,pion,j,i,vtx,b);
-      if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
       if(charge>0) continue;//only unlike-sign pairs
+      if(kp->pt()<1.) continue;// require D0 pT > 1.5 GeV/c
       // StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
       // StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
 
@@ -302,6 +304,7 @@ Int_t StMyAnalysisMaker::Make() {
         continue;
       // cout<<"find D0 !"<<endl;
       d0MassPt->Fill(kp->m(),kp->pt());
+      if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
       TLorentzVector d0Lorentz;
       d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
       double kpY = d0Lorentz.Rapidity();
@@ -387,7 +390,7 @@ bool StMyAnalysisMaker::isGoodTrack(StPicoTrack const * const trk) const
   // Require at least one hit on every layer of PXL and IST.
   // It is done here for tests on the preview II data.
   // The new StPicoTrack which is used in official production has a method to check this
-  return trk->gPt() > 0.2 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
+  return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
   //return  trk->nHitsFit() >= mycuts::nHitsFit;
 }
 bool StMyAnalysisMaker::isGoodTof(StPicoTrack const * const trk) const
@@ -395,6 +398,19 @@ bool StMyAnalysisMaker::isGoodTof(StPicoTrack const * const trk) const
   int index2tof = trk->bTofPidTraitsIndex();
   if(index2tof < 0) return false;
   StPicoBTofPidTraits *tofPid = mPicoDstMaker->picoDst()->btofPidTraits(index2tof);
+  if(tofPid->btofMatchFlag()>0)
+  {
+    testTrack->Fill(3);
+    if(fabs(tofPid->btofYLocal()) < 1.8)
+    {
+      testTrack->Fill(4);
+      if(tofPid->btofBeta() > 0)
+      {
+        testTrack->Fill(5);
+      }
+    }
+  }
+
   return tofPid->btofMatchFlag() > 0 && fabs(tofPid->btofYLocal()) < 1.8 && tofPid->btofBeta() > 0;
 }
 
