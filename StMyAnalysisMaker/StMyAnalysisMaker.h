@@ -126,11 +126,13 @@ class StMyAnalysisMaker : public StMaker {
     Int_t CheckrunNumber(int runnumber) const;            
     TH1D *zdcPsi;
     TH1D *zdcPsi_corr;
+    TH1D *testEvent;
     TProfile *pionV1Plus;
     TProfile *pionV1Minus;
     TProfile *zdcResolution;
     TH1D *testTrack;
     TH2D *trackPhiEta;
+    TH1D *testDPhi;
     TH2D *trackPhiEtaHFT;
 
     //

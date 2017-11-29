@@ -80,6 +80,8 @@ Int_t StMyAnalysisMaker::Init() {
   d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-1,1);
   d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",50,1.6,2.1,100,0,10);
   d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-1,1);
+  testDPhi = new TH1D("testDPhi","testDPhi",400,-1*twoPI,twoPI);
+  testEvent = new TH1D("testEvent","",10,-0.5,9.5);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
   zdcPsi_corr = new TH1D("zdcPsi_corr",";#psi_{ZDC}",1000,0,twoPI);
   pionV1Plus = new TProfile("pionV1Plus","",48,-1.2,1.2);
@@ -116,6 +118,8 @@ void StMyAnalysisMaker::DeclareHistograms() {
 void StMyAnalysisMaker::WriteHistograms() {
   d0MassPhiEta->Write();
   d0BarMassPhiEta->Write();
+  testDPhi->Write();
+  testEvent->Write();
   d0MassPt->Write();
   zdcPsi->Write();
   zdcPsi_corr->Write();
@@ -209,8 +213,10 @@ Int_t StMyAnalysisMaker::Make() {
   //miniZDCSMD->SetZDCSMDrefm(ZDCSMDadc,mult_corr,runID);;
   miniZDCSMD->SetZDCSMDcent(ZDCSMDadc,cent,runID);
   if(miniZDCSMD->ZDCSMDbadrun())return kStOK;
+  testEvent->Fill(8);
   miniZDCSMD->calibrateZDCSMDevp();
   if(!(miniZDCSMD->ZDCSMDgoodEvent()))return kStOK;
+  testEvent->Fill(9);
   //int mMod=miniZDCSMD->GetMod();
 
   float mZDC1Event_PsiF = miniZDCSMD->GetZDCSMD_PsiFulSS(); 
@@ -311,6 +317,14 @@ Int_t StMyAnalysisMaker::Make() {
       double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
       if(deltaPhi > PI)
         deltaPhi = twoPI - deltaPhi;
+      deltaPhi = fabs(deltaPhi);
+      // if(deltaPhi < 0)
+      // {
+      //   cout<<"kp phi = "<<kp->phi()<<"\tevet psi = "<<mZDC1Event_PsiF<<endl;
+      //   cout<<"original dphi = "<<deltaPhi0<<endl;
+      //   cout<<"folded dphi = "<<deltaPhi<<endl;
+      // }
+      testDPhi->Fill(deltaPhi);
       // cout<<"deltaPhi = "<<deltaPhi<<endl;
       if(kaon->charge() < 0)
         d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,mWght);
@@ -521,6 +535,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   // const int grefMult  = mEvent->grefMult();
   // const int  ranking  = mEvent->ranking();
 
+  testEvent->Fill(0);
   if((!mEvent->isTrigger(520001))
       &&(!mEvent->isTrigger(520011))
       &&(!mEvent->isTrigger(520021))
@@ -530,6 +545,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
     )
     return false; 
 
+  testEvent->Fill(1);
 
   // remove duplicate events
   ////////////////////////////////////
@@ -545,7 +561,9 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
 
   //event cut
   if(refMult <=2 || refMult > 1000) return false;
+  testEvent->Fill(2);
   if(removeBadID(runID))return false;            
+  testEvent->Fill(3);
   if(fabs(VertexZ) > 100) return false; 
 
   // hVertex2D ->Fill(VertexZ,vpdVz);
@@ -554,6 +572,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   if(fabs(VertexZ) > 6) return false; 
   if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return false; 
   if(fabs(VertexZ-vpdVz)>3.)return false;       // no vpd cut in low energy?
+  testEvent->Fill(4);
 
   //if(fabs(VertexZ) > mTreeCut::mVzMaxMap[mEnergy]) return kStOK; 
   //if(sqrt(pow(VertexX-mTreeCut::mVxMap[mEnergy],2.)+pow(VertexY-mTreeCut::mVyMap[mEnergy],2.))>mTreeCut::mVrMaxMap[mEnergy])return kStOK; 
@@ -586,17 +605,19 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
   //
   if( centrality<0||centrality>=(nCent-1)) return false;
-  int cent = centrality+1;  
+  testEvent->Fill(5);
+  // int cent = centrality+1;  
   // //cout<<refMult<<" "<<cent<<" "<<mRefMultCorr->getCentralityBin16()<<endl;
   //
   // // careful cent 1-9    -nan  70-80, 60-70, 50-60, 40-50, 30-40, 20-30, 10-20, 5-10, 0-5 
-  double wCentSC[nCent]={-999, 1.,    1.,    1.,    1.,    1.,    1.,    0.4,   0.1,  0.1,};
-  //double wCentSC[nCent]={-999, 1.,    1.,    1.,    1.,    1.,    1.,    1.,   1.,  1.,};
-  //
-  if(wCentSC[cent]<1.){
-    double mRand=gRandom->Rndm();
-    if(mRand>wCentSC[cent]) return false;
-  }
+  // double wCentSC[nCent]={-999, 1.,    1.,    1.,    1.,    1.,    1.,    0.4,   0.1,  0.1,};
+  // //double wCentSC[nCent]={-999, 1.,    1.,    1.,    1.,    1.,    1.,    1.,   1.,  1.,};
+  // //
+  // if(wCentSC[cent]<1.){
+  //   double mRand=gRandom->Rndm();
+  //   if(mRand>wCentSC[cent]) return false;
+  // }
+  // testEvent->Fill(6);
 
   // mWght/=wCentSC[cent];
   mWght = 1;
@@ -606,6 +627,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   int    iVz=(VertexZ+mVz)/wVz;
   //cout<<wVz<<" "<<iVz<<endl;
   if(iVz<0||iVz>=nVz) return false;
+  testEvent->Fill(7);
 
   return true;
 
