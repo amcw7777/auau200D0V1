@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<job fileListSyntax="paths" minFilesPerProcess="100" maxFilesPerProcess="120" simulateSubmission="false">
+<command>
+	starver SL16d
+        root4star -l -b -q -x readPicoDst.C\(\"$FILELIST\",\"dMesons_$JOBID.root\"\) &gt;&amp; ${JOBID}.log
+        pwd
+        ls -l -a
+</command>
+	
+	<!-- <stdout URL="file:./log/dMesons_$JOBID.log"/> -->
+	<stdout discard="true"/>
+	<stderr URL="file:./err/dMesons_$JOBID.err"/>
+
+	<Generator>
+		<Location>./report/</Location>
+		<ScriptLocation>./csh/</ScriptLocation>
+		<ListLocation>./list/</ListLocation>
+	</Generator>
+
+	<input URL="filelist:/global/homes/a/amcw7777/auau200GeVD0V1/submit/sample.list"/>
+	<!-- <input URL="filelist:/global/homes/a/amcw7777/auau200GeVD0V1/file.list"/> -->
+
+	<SandBox installer="ZIP">
+		<Package name="LocalLibraries">
+                	<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/readPicoDst.C</File>
+                	<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/efficiency.txt</File>
+                	<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/phiWeight.root</File>
+               		<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/loadKFLibraries.C</File>
+               		<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/.sl64_gcc482/</File>
+               		<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/StRoot/</File>
+               		<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/run14AuAu200GeVPrescales/</File>
+               		<File>file:/global/homes/a/amcw7777/auau200GeVD0V1/ZDCSMDFile/</File>
+		</Package>
+	</SandBox>
+        <output fromScratch="*.root" toURL="file:/global/homes/a/amcw7777/auau200GeVD0V1/submit/production/" />
+        <!-- <output fromScratch="*.log" toURL="file:/global/homes/a/amcw7777/d0&#45;v2&#45;P16id/submit/log/" /> -->
+</job>
