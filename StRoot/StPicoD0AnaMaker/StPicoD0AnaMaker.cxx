@@ -75,6 +75,10 @@ Int_t StPicoD0AnaMaker::Init()
   mOutputFile = new TFile(mOutFileName.Data(), "RECREATE");
   mOutputFile->cd();
 
+  ifstream ifs("efficiency.txt");
+  for(int i=0; i<6; i++)
+    for(int j=0; j<4; j++)
+      ifs>>efficiency[j][i];
 
   // -------------- USER VARIABLES -------------------------
   mGRefMultCorrUtil = new StRefMultCorr("grefmult");
@@ -86,9 +90,9 @@ Int_t StPicoD0AnaMaker::Init()
 
   PI   = 3.14159;
   twoPI= 2.*PI;
-  d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-1,1);
+  d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",50,1.6,2.1,100,0,10);
-  d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-1,1);
+  d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   testDPhi = new TH1D("testDPhi","testDPhi",400,-1*twoPI,twoPI);
   testEvent = new TH1D("testEvent","",10,-0.5,9.5);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
@@ -99,6 +103,8 @@ Int_t StPicoD0AnaMaker::Init()
   testTrack = new TH1D("testTrack","",10,0,10);
   trackPhiEta = new TH2D("trackPhiEta",";#phi;#eta",100,-1.*PI,PI,10,-1,1);
   trackPhiEtaHFT = new TH2D("trackPhiEtaHFT",";#phi;#eta",100,-1.*PI,PI,10,-1,1);
+  hHitsDedx = new TH1D("hitsDedx","",100,0,100);
+  hSigmaPiBeta = new TH2D("sigmaPiBeta","",100,0,5,50,0,0.05);
   pionV1Plus->Sumw2();
   pionV1Minus->Sumw2();
   zdcResolution->Sumw2();
@@ -131,8 +137,10 @@ Int_t StPicoD0AnaMaker::Finish()
   testTrack->Write();
   trackPhiEta->Write();
   trackPhiEtaHFT->Write();
+  hHitsDedx->Write();
+  hSigmaPiBeta->Write();
   miniZDCSMD->WriteHist();
-
+  cout<<"writing new histo"<<endl;
   // save user variables here
   delete mPrescales;
 
@@ -236,26 +244,49 @@ Int_t StPicoD0AnaMaker::Make()
   for (int idx = 0; idx < aKaonPion->GetEntries(); ++idx)
   {
     StKaonPion const* kp = (StKaonPion*)aKaonPion->At(idx);
-    StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
-    StPicoTrack const* pion = picoDst->track(kp->pionIdx());
-
-    if (!isGoodTrack(kaon) || !isGoodTrack(pion)) continue;
-    if (!kaon->isHFTTrack() || !pion->isHFTTrack()) continue;
-    if (!isTpcPion(pion)) continue;
-    bool tpcKaon = isTpcKaon(kaon,&pVtx);
-    float kBeta = getTofBeta(kaon,&pVtx);
-    bool tofAvailable = kBeta>0;
-    bool tofKaon = tofAvailable && isTofKaon(kaon,kBeta);
-    bool goodKaon = (tofAvailable && tofKaon) || (!tofAvailable && tpcKaon);
-    if(!goodKaon) continue;
-    int charge=0;
     float d0Pt = kp->pt();
     if(d0Pt < 1.5)  continue;
-    // double dMass = kp->m();
-    // double reweight_eff = (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
-    // double reweight_eff = 1;//= (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
+    StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
+    StPicoTrack const* pion = picoDst->track(kp->pionIdx());
+    if (!isGoodTrack(kaon,event) || !isGoodTrack(pion,event)) continue;
+    if (!kaon->isHFTTrack() || !pion->isHFTTrack()) continue;
 
-    if((charge=isD0Pair(kp))!=0 )
+    // if (!isTpcPion(pion)) continue;
+    bool tpcPion = isTpcPion(pion);
+    bool tpcKaon = isTpcKaon(kaon,&pVtx);
+    float kBeta = getTofBeta(kaon,&pVtx);
+    float pBeta = getTofBeta(pion,&pVtx);
+    bool kTofAvailable = kBeta>0;
+    bool pTofAvailable = pBeta>0;
+    bool tofKaon = kTofAvailable && isTofKaon(kaon,kBeta);
+    bool tofPion = pTofAvailable && isTofPion(pion,pBeta);
+    bool goodKaon = (kTofAvailable && tofKaon) || (!kTofAvailable && tpcKaon);
+    bool goodPion = (pTofAvailable && tofPion) || (!pTofAvailable && tpcPion);
+
+    double diffBeta = 0;
+    if(pBeta>0)
+    {
+      double ptot = pion->dcaGeometry().momentum().mag();
+      float beta_p = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
+      diffBeta = fabs(1/pBeta - 1/beta_p);
+    }
+    hHitsDedx->Fill(pion->nHitsDedx());
+    hSigmaPiBeta->Fill(pion->nSigmaPion(),diffBeta);
+    if(!goodKaon) continue;
+    if(!goodPion) continue;
+    int charge=0;
+    // double dMass = kp->m();
+    int centBin = 0;
+    if(centrality>=7) centBin=1;
+    else if(centrality>=4)  centBin=2;
+    else centBin=3;
+    int fitindex = 5;
+    if(d0Pt<5)
+      fitindex = static_cast<int>(d0Pt);
+    double reweight_eff = (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
+    // double reweight_eff = 1;//= (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
+    charge=isD0Pair(kp);
+    if(charge<0)
     {
       TLorentzVector d0Lorentz;
       d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
@@ -268,9 +299,9 @@ Int_t StPicoD0AnaMaker::Make()
       testDPhi->Fill(deltaPhi);
       // cout<<"deltaPhi = "<<deltaPhi<<endl;
       if(kaon->charge() < 0)
-        d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY);
+        d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,reweight_eff*reweight);
       if(kaon->charge() > 0)
-        d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY);
+        d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY,reweight_eff*reweight);
 
     }//D loop
 
@@ -285,9 +316,9 @@ int StPicoD0AnaMaker::isD0Pair(StKaonPion const* const kp) const
 
   StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
   StPicoTrack const* pion = picoDst->track(kp->pionIdx());
-  TLorentzVector d0Lorentz;
-  d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
-  if(fabs(d0Lorentz.Rapidity())>1.) return 0;
+  // TLorentzVector d0Lorentz;
+  // d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
+  // if(fabs(d0Lorentz.Rapidity())>1.) return 0;
   bool pairCuts = false;
   if(kp->pt()<1)
   {
@@ -486,6 +517,20 @@ bool StPicoD0AnaMaker::isTofKaon(StPicoTrack const * const trk, float beta) cons
   return tofKaon;
 }
 
+//-----------------------------------------------------------------------------
+bool StPicoD0AnaMaker::isTofPion(StPicoTrack const * const trk, float beta) const
+{
+  bool tofPion= false;
+
+  if(beta>0)
+  {
+    double ptot = trk->dcaGeometry().momentum().mag();
+    float beta_p = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
+    tofPion = fabs(1/beta - 1/beta_p) < mycuts::kTofBetaDiff ? true : false;
+  }
+
+  return tofPion;
+}
 //------------------------------------------------------------------------------
 bool StPicoD0AnaMaker::isGoodEvent(StPicoEvent const*mEvent)
 {	
@@ -549,11 +594,16 @@ bool StPicoD0AnaMaker::isGoodHadron(StPicoTrack const * const trk) const
   return trk->pMom().perp() > mycuts::hadronPtMin &&trk->pMom().perp() < mycuts::hadronPtMax && trk->nHitsFit() >= 15 &&fabs(trk->pMom().pseudoRapidity())<1. && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52;
 }
 
-bool StPicoD0AnaMaker::isGoodTrack(StPicoTrack const * const trk) const
+bool StPicoD0AnaMaker::isGoodTrack(StPicoTrack const * const trk,StPicoEvent const*mEvent) const
 {
   // Require at least one hit on every layer of PXL and IST.
   // It is done here for tests on the preview II data.
   // The new StPicoTrack which is used in official production has a method to check this
-  return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
+  // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
+  // StThreeVectorF Vertex3D=mEvent->primaryVertex();
+  // float b = mEvent->bField();
+  // StThreeVectorF gmom = trk->gMom(Vertex3D,b);
+  // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && fabs(gmom.pseudoRapidity()) < 1. && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 ;
+  return trk->gPt() > 0.6 && trk->nHitsFit() >= 20  && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 ;
   //return  trk->nHitsFit() >= mycuts::nHitsFit;
 }

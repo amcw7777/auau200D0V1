@@ -90,10 +90,11 @@ class StPicoD0AnaMaker : public StMaker
     int isD0Pair(StKaonPion const*) const;
     int isD0Pair50(StKaonPion const*) const;
     int isD0Pair150(StKaonPion const*) const;
-    bool  isGoodTrack(StPicoTrack const*) const;
+    bool  isGoodTrack(StPicoTrack const*, StPicoEvent const*) const;
     bool  isTpcPion(StPicoTrack const*) const;
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
+    bool isTofPion(StPicoTrack const* const, float beta) const;
     float getTofBeta(StPicoTrack const*,StThreeVectorF const * pVtx) const;
 
     StPicoDstMaker* mPicoDstMaker;
@@ -142,6 +143,8 @@ class StPicoD0AnaMaker : public StMaker
     TH2D *trackPhiEta;
     TH1D *testDPhi;
     TH2D *trackPhiEtaHFT;
+    TH1D *hHitsDedx;
+    TH2D *hSigmaPiBeta;
 
     double efficiency[4][6];
     ClassDef(StPicoD0AnaMaker, 1)
