@@ -32,6 +32,7 @@
 #include "StMaker.h"
 //
 #include "StThreeVectorF.hh"
+#include "TLorentzVector.h"
 #include "TSpectrum.h"
 #include "Math/Functor.h"
 #include "Math/GSLMinimizer1D.h"
@@ -95,7 +96,10 @@ class StPicoD0AnaMaker : public StMaker
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
     bool isTofPion(StPicoTrack const* const, float beta) const;
+    bool isTofKaon(StPicoTrack const* const, float beta, StPicoEvent const*) const;
+    bool isTofPion(StPicoTrack const* const, float beta, StPicoEvent const*) const;
     float getTofBeta(StPicoTrack const*,StThreeVectorF const * pVtx) const;
+    float getD0Efficiency(TLorentzVector &);
 
     StPicoDstMaker* mPicoDstMaker;
     StPicoD0Event* mPicoD0Event;
@@ -129,9 +133,18 @@ class StPicoD0AnaMaker : public StMaker
     double     mEnergy;            
     double     mWght;            
     TString    mListDir;            
-    TH2D *d0MassPt;
+    TH3D *d0MassPt;
+    TH3D *d0BarMassPt;
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
+
+    TH3D *d0MassPhiEta_50;
+    TH3D *d0BarMassPhiEta_50;
+    TH3D *d0MassPhiEta_150;
+    TH3D *d0BarMassPhiEta_150;
+    TH3D *d0MassPhiEta_5bin;
+    TH3D *d0BarMassPhiEta_5bin;
+
     Int_t CheckrunNumber(int runnumber) const;            
     TH1D *zdcPsi;
     TH1D *zdcPsi_corr;
@@ -145,6 +158,14 @@ class StPicoD0AnaMaker : public StMaker
     TH2D *trackPhiEtaHFT;
     TH1D *hHitsDedx;
     TH2D *hSigmaPiBeta;
+    // TNTuple *d0_canditates_tuple;
+    enum 
+    {
+      NCENTRAPEFF=3,
+      NRAPEFF=20,
+    };
+    TH3F *h3PtCentY_clone;
+    TH3F *h3PtCentYcut_clone;
 
     double efficiency[4][6];
     ClassDef(StPicoD0AnaMaker, 1)

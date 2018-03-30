@@ -90,9 +90,16 @@ Int_t StPicoD0AnaMaker::Init()
 
   PI   = 3.14159;
   twoPI= 2.*PI;
+  d0MassPt = new TH3D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c);y",50,1.6,2.1,100,0,10,4,-0.8,0.8);
+  d0BarMassPt = new TH3D("d0BarMassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c);y",50,1.6,2.1,100,0,10,4,-0.8,0.8);
   d0MassPhiEta = new TH3D("d0MassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
-  d0MassPt = new TH2D("d0MassPt",";D^{0} mass (GeV/c^{2});p_{T} (GeV/c)",50,1.6,2.1,100,0,10);
   d0BarMassPhiEta = new TH3D("d0BarMassPhiEta",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_50 = new TH3D("d0MassPhiEta_50",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0BarMassPhiEta_50 = new TH3D("d0BarMassPhiEta_50",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_150 = new TH3D("d0MassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0BarMassPhiEta_150 = new TH3D("d0BarMassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_5bin = new TH3D("d0MassPhiEta_5bin",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,5,-0.8,0.8);
+  d0BarMassPhiEta_5bin = new TH3D("d0BarMassPhiEta_5bin",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,5,-0.8,0.8);
   testDPhi = new TH1D("testDPhi","testDPhi",400,-1*twoPI,twoPI);
   testEvent = new TH1D("testEvent","",10,-0.5,9.5);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
@@ -108,6 +115,16 @@ Int_t StPicoD0AnaMaker::Init()
   pionV1Plus->Sumw2();
   pionV1Minus->Sumw2();
   zdcResolution->Sumw2();
+  fout1.open("xcheck_topo_d0_candidates.csv");
+  fout1<<"D0phi,pipt,DL,kpt,evId,kdca,dca12i,D0rap,keta,pidca,D0mass,nD0,nD0bar,D0pt,D0dca,pieta,cosTheta,kaonIdx,pionIdx,from"<<endl;
+  // d0_candidates_tuple = new TNtuple("d0_candidates_tuple","","D0phih:pipt:DL:kpt:evId:kdca:dca12i:D0rap:keta:pidca:D0mass:nD0:nD0bar:D0pt:D0dca:pieta:cosTheta");
+  
+///////////////Load efficiency files/////////////
+  TFile* fRapEff = new TFile("D0_eff_Run14.root");
+  h3PtCentY_clone = (TH3F *)fRapEff->Get("h3PtCentY")->Clone("h3PtCentY_clone");
+  cout<<" total entry = "<<h3PtCentY_clone->GetEntries()<<endl;
+  h3PtCentYcut_clone = (TH3F *)fRapEff->Get("h3PtCentYcut")->Clone("h3PtCentYcut_clone");
+  cout<<"example eff = "<<1.0 * (h3PtCentYcut_clone->GetBinContent(1,1,1)) / (h3PtCentY_clone->GetBinContent(1,1,1))<<endl;
 
   return kStOK;
 }
@@ -123,12 +140,20 @@ Int_t StPicoD0AnaMaker::Finish()
   LOG_INFO << " StPicoD0AnaMaker - writing data and closing output file " <<endm;
   fout.close();
   fout1.close();
+  // fRapEff->Close();
   mOutputFile->cd();
   d0MassPhiEta->Write();
   d0BarMassPhiEta->Write();
+  d0MassPhiEta_50->Write();
+  d0BarMassPhiEta_50->Write();
+  d0MassPhiEta_150->Write();
+  d0BarMassPhiEta_150->Write();
+  d0MassPhiEta_5bin->Write();
+  d0BarMassPhiEta_5bin->Write();
   testDPhi->Write();
   testEvent->Write();
   d0MassPt->Write();
+  d0BarMassPt->Write();
   zdcPsi->Write();
   zdcPsi_corr->Write();
   pionV1Plus->Write();
@@ -199,6 +224,31 @@ Int_t StPicoD0AnaMaker::Make()
     LOG_WARN << "not minBias sample!" << endl;
     return kStWarn;
   }
+
+  for(unsigned int i=0;i<picoDst->numberOfTracks();i++)
+  {
+    StPicoTrack const* itrk = picoDst->track(i);
+    testTrack->Fill(0);
+    if(!itrk->isHFTTrack()) continue;
+    if(!isGoodTrack(itrk,event))  continue;
+    testTrack->Fill(1);
+    bool tpcPion = isTpcPion(itrk);
+    bool tpcKaon = isTpcKaon(itrk,&pVtx);
+    float kBeta = getTofBeta(itrk,&pVtx);
+    float pBeta = getTofBeta(itrk,&pVtx);
+    bool kTofAvailable = kBeta>0;
+    bool pTofAvailable = pBeta>0;
+    bool tofKaon = kTofAvailable && isTofKaon(itrk,kBeta);
+    bool tofPion = pTofAvailable && isTofPion(itrk,pBeta);
+    bool goodKaon = tpcKaon && tofKaon;
+    bool goodPion = tpcPion && tofPion;
+    if(goodKaon)
+      testTrack->Fill(2);
+    if(goodPion)
+      testTrack->Fill(3);
+
+
+  }
   // if(!(centrality==4||centrality==5||centrality==6))//minBias trigger requires
   // {
   //   LOG_WARN << " Not Good Event! Skip! " << endm;
@@ -244,12 +294,21 @@ Int_t StPicoD0AnaMaker::Make()
   for (int idx = 0; idx < aKaonPion->GetEntries(); ++idx)
   {
     StKaonPion const* kp = (StKaonPion*)aKaonPion->At(idx);
+    int kaonId = kp->kaonIdx();
+    int pionId = kp->pionIdx();
     float d0Pt = kp->pt();
     if(d0Pt < 1.5)  continue;
+    if (cos(kp->pointingAngle()) < 0.99) continue;
     StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
     StPicoTrack const* pion = picoDst->track(kp->pionIdx());
-    if (!isGoodTrack(kaon,event) || !isGoodTrack(pion,event)) continue;
+    StThreeVectorF pimom = pion->gMom(pVtx,event->bField());
+    StThreeVectorF kmom = kaon->gMom(pVtx,event->bField());
+
     if (!kaon->isHFTTrack() || !pion->isHFTTrack()) continue;
+
+    // if (!isGoodTrack(kaon,event) || !isGoodTrack(pion,event)) continue;
+    if (!isGoodTrack(kaon,event)) continue;
+    if (!isGoodTrack(pion,event)) continue;
 
     // if (!isTpcPion(pion)) continue;
     bool tpcPion = isTpcPion(pion);
@@ -258,20 +317,24 @@ Int_t StPicoD0AnaMaker::Make()
     float pBeta = getTofBeta(pion,&pVtx);
     bool kTofAvailable = kBeta>0;
     bool pTofAvailable = pBeta>0;
-    bool tofKaon = kTofAvailable && isTofKaon(kaon,kBeta);
-    bool tofPion = pTofAvailable && isTofPion(pion,pBeta);
-    bool goodKaon = (kTofAvailable && tofKaon) || (!kTofAvailable && tpcKaon);
-    bool goodPion = (pTofAvailable && tofPion) || (!pTofAvailable && tpcPion);
+    bool tofKaon = kTofAvailable && isTofKaon(kaon,kBeta,event);
+    bool tofPion = pTofAvailable && isTofPion(pion,pBeta,event);
+    // bool goodKaon = (kTofAvailable && tofKaon) || (!kTofAvailable && tpcKaon);
+    // bool goodPion = (pTofAvailable && tofPion) || (!pTofAvailable && tpcPion);
+    bool goodKaon = kTofAvailable ? tofKaon&&tpcKaon : tpcKaon;
+    bool goodPion = pTofAvailable ? tofPion&&tpcPion : tpcPion;
+    // bool goodKaon = tpcKaon && tofKaon;
+    // bool goodPion = tpcPion && tofPion;
 
-    double diffBeta = 0;
-    if(pBeta>0)
-    {
-      double ptot = pion->dcaGeometry().momentum().mag();
-      float beta_p = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
-      diffBeta = fabs(1/pBeta - 1/beta_p);
-    }
-    hHitsDedx->Fill(pion->nHitsDedx());
-    hSigmaPiBeta->Fill(pion->nSigmaPion(),diffBeta);
+    // double diffBeta = 0;
+    // if(pBeta>0)
+    // {
+    //   double ptot = pion->dcaGeometry().momentum().mag();
+    //   float beta_p = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
+    //   diffBeta = fabs(1/pBeta - 1/beta_p);
+    // }
+    // hHitsDedx->Fill(pion->nHitsDedx());
+    // hSigmaPiBeta->Fill(pion->nSigmaPion(),diffBeta);
     if(!goodKaon) continue;
     if(!goodPion) continue;
     int charge=0;
@@ -286,24 +349,83 @@ Int_t StPicoD0AnaMaker::Make()
     double reweight_eff = (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
     // double reweight_eff = 1;//= (efficiency[0][fitindex]/efficiency[centBin][fitindex]);
     charge=isD0Pair(kp);
-    if(charge<0)
+    int count_d0 = 0;
+    int count_d0bar = 0;
+    if(charge!=0)
     {
+      testTrack->Fill(5);
       TLorentzVector d0Lorentz;
       d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
-      d0MassPt->Fill(kp->m(),kp->pt());
       double kpY = d0Lorentz.Rapidity();
       double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
       if(deltaPhi > PI)
         deltaPhi = twoPI - deltaPhi;
+
+      float d0Eff = getD0Efficiency(d0Lorentz);
+      cout<<"D0 efficiency = "<<d0Eff<<endl;
+
       deltaPhi = fabs(deltaPhi);
       testDPhi->Fill(deltaPhi);
       // cout<<"deltaPhi = "<<deltaPhi<<endl;
       if(kaon->charge() < 0)
-        d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,reweight_eff*reweight);
+      {
+        count_d0++;
+        d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+        d0MassPhiEta_5bin->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+        d0MassPt->Fill(kp->m(),kp->pt(),kpY,1.*reweight/d0Eff);
+      }
       if(kaon->charge() > 0)
-        d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY,reweight_eff*reweight);
+      {
+        count_d0bar++;
+        d0BarMassPhiEta_5bin->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+        d0BarMassPt->Fill(kp->m(),kp->pt(),kpY,1.*reweight/d0Eff);
+      }
+      // fout1<<kp->phi()<<","<<pimom.perp()<<","<<kp->decayLength()<<","<<kmom.perp()<<","<<mPicoD0Event->eventId()<<",";
+      // fout1<<kp->kaonDca()<<","<<kp->dcaDaughters()<<","<<kpY<<","<<kmom.pseudoRapidity()<<","<<kp->pionDca()<<","<<kp->m()<<","<<count_d0<<",";
+      // fout1<<count_d0bar<<","<<kp->pt()<<","<<sin(kp->pointingAngle())*kp->decayLength()<<","<<pimom.pseudoRapidity()<<","<<cos(kp->pointingAngle())<<",";
+      // fout1<<kp->kaonIdx()<<","<<kp->pionIdx()<<",Leon"<<","<<centrality<<endl;
 
     }//D loop
+    if(isD0Pair50(kp)!=0)
+    {
+      TLorentzVector d0Lorentz;
+      d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
+      double kpY = d0Lorentz.Rapidity();
+      double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
+      if(deltaPhi > PI)
+        deltaPhi = twoPI - deltaPhi;
+
+      float d0Eff = getD0Efficiency(d0Lorentz);
+      deltaPhi = fabs(deltaPhi);
+      if(kaon->charge() < 0)
+      {
+        d0MassPhiEta_50->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+      }
+      if(kaon->charge() > 0)
+      {
+        d0BarMassPhiEta_50->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+      }
+    }// D0 50 
+    if(isD0Pair150(kp)!=0)
+    {
+      TLorentzVector d0Lorentz;
+      d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
+      double kpY = d0Lorentz.Rapidity();
+      double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
+      if(deltaPhi > PI)
+        deltaPhi = twoPI - deltaPhi;
+
+      float d0Eff = getD0Efficiency(d0Lorentz);
+      deltaPhi = fabs(deltaPhi);
+      if(kaon->charge() < 0)
+      {
+        d0MassPhiEta_150->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+      }
+      if(kaon->charge() > 0)
+      {
+        d0BarMassPhiEta_150->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
+      }
+    }// D0 50 
 
   }
 
@@ -531,7 +653,41 @@ bool StPicoD0AnaMaker::isTofPion(StPicoTrack const * const trk, float beta) cons
 
   return tofPion;
 }
-//------------------------------------------------------------------------------
+///-----------------------------------------------------------------------------
+bool StPicoD0AnaMaker::isTofKaon(StPicoTrack const * const trk, float beta,StPicoEvent const*mEvent) const
+{
+  bool tofKaon = false;
+
+  StThreeVectorF vtx=mEvent->primaryVertex();
+  float b = mEvent->bField();
+  if(beta>0)
+  {
+    double ptot = trk->gMom(vtx,b).mag();
+    float beta_k = ptot/sqrt(ptot*ptot+M_KAON_PLUS*M_KAON_PLUS);
+    tofKaon = fabs(1/beta - 1/beta_k) < mycuts::kTofBetaDiff ? true : false;
+  }
+
+  return tofKaon;
+}
+
+//-----------------------------------------------------------------------------
+bool StPicoD0AnaMaker::isTofPion(StPicoTrack const * const trk, float beta,StPicoEvent const*mEvent) const
+{
+  bool tofPion= false;
+
+  StThreeVectorF vtx=mEvent->primaryVertex();
+  float b = mEvent->bField();
+  if(beta>0)
+  {
+    // double ptot = trk->dcaGeometry().momentum().mag();
+    double ptot = trk->gMom(vtx,b).mag();
+    float beta_p = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
+    tofPion = fabs(1/beta - 1/beta_p) < mycuts::kTofBetaDiff ? true : false;
+  }
+
+  return tofPion;
+}
+  //------------------------------------------------------------------------------
 bool StPicoD0AnaMaker::isGoodEvent(StPicoEvent const*mEvent)
 {	
 
@@ -559,8 +715,8 @@ bool StPicoD0AnaMaker::isGoodEvent(StPicoEvent const*mEvent)
   const double vpdVz   = mEvent->vzVpd();
 
   //event cut
-  if(refMult <=2 || refMult > 1000) return false;
-  if(fabs(VertexZ) > 100) return false; 
+  // if(refMult <=2 || refMult > 1000) return false;
+  // if(fabs(VertexZ) > 100) return false; 
 
   // hVertex2D ->Fill(VertexZ,vpdVz);
   // hDiffVz   ->Fill(VertexZ-vpdVz); 
@@ -568,7 +724,8 @@ bool StPicoD0AnaMaker::isGoodEvent(StPicoEvent const*mEvent)
   if(fabs(VertexZ) > 6) return false; 
   if(sqrt(pow(VertexX,2.)+pow(VertexY,2.))>2.0)return false; 
   if(fabs(VertexZ-vpdVz)>3.)return false;       // no vpd cut in low energy?
-  testEvent->Fill(4);
+  if(fabs(VertexX)<1e-5 || fabs(VertexY)<1e-5 || fabs(VertexZ)<1e-5 ) return false;
+  testEvent->Fill(2);
   // mRefMultCorr->initEvent(refMult,VertexZ,mEvent->ZDCx());
   // //
   // int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
@@ -600,10 +757,27 @@ bool StPicoD0AnaMaker::isGoodTrack(StPicoTrack const * const trk,StPicoEvent con
   // It is done here for tests on the preview II data.
   // The new StPicoTrack which is used in official production has a method to check this
   // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
-  // StThreeVectorF Vertex3D=mEvent->primaryVertex();
-  // float b = mEvent->bField();
-  // StThreeVectorF gmom = trk->gMom(Vertex3D,b);
-  // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && fabs(gmom.pseudoRapidity()) < 1. && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 ;
-  return trk->gPt() > 0.6 && trk->nHitsFit() >= 20  && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 ;
+  StThreeVectorF Vertex3D=mEvent->primaryVertex();
+  float b = mEvent->bField();
+  StThreeVectorF gmom = trk->gMom(Vertex3D,b);
+  StPhysicalHelixD helix = trk->helix();
+  return gmom.perp() > 0.6 && trk->nHitsFit() >= 20 && fabs(gmom.pseudoRapidity()) < 1. && (1.0*trk->nHitsFit()/trk->nHitsMax())>=0.52 && fabs(helix.geometricSignedDistance(Vertex3D)) > 0.005;
+  // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20  && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 ;
   //return  trk->nHitsFit() >= mycuts::nHitsFit;
 }
+
+float StPicoD0AnaMaker::getD0Efficiency(TLorentzVector &d0)
+{
+  int centrality  = mGRefMultCorrUtil->getCentralityBin9();
+  float d0Rap = d0.Rapidity();
+  float d0Pt = d0.Pt();
+  if (d0Pt > 7.9)
+    d0Pt = 7.9;
+  int yBin = (int)((d0Rap+1.0)/0.1); 
+  int ptBin = (int)(d0Pt/0.1+1);
+  int centBin = centrality+1;
+  return 1.0 * (h3PtCentYcut_clone->GetBinContent(ptBin,centBin,yBin)) / (h3PtCentY_clone->GetBinContent(ptBin,centBin,yBin));;
+}
+
+
+
