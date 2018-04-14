@@ -21,6 +21,7 @@
 #include "TH1K.h"
 #include "StiMaker/StKFVerticesCollection.h"
 #include "StPhysicalHelixD.hh"
+#include "TLorentzVector.h"
 class StPrimaryVertex; 
 class StEvent;
 class StDcaGeometry; 
@@ -99,9 +100,13 @@ class StMyAnalysisMaker : public StMaker {
     bool  isTpcPion(StPicoTrack const*) const;
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
+    bool isTofPion(StPicoTrack const* const, float beta) const;
     float getTofBeta(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     // int isD0Pair(StKaonPion const*) const;
     int isD0Pair(StKaonPion const* const ) const;
+    int isD0Pair50(StKaonPion const* const ) const;
+    int isD0Pair150(StKaonPion const* const ) const;
+    float getD0Efficiency(TLorentzVector &,bool);
 
     StRefMultCorr* mGRefMultCorrUtil; 
     //d0 v2 calculation
@@ -117,9 +122,18 @@ class StMyAnalysisMaker : public StMaker {
     double     mEnergy;            
     double     mWght;            
     TString    mListDir;            
-    TH2D *d0MassPt;
+    TH3D *d0MassPtY;
+    TH3D *d0BarMassPtY;
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
+    TH3D *d0MassPhiEta_noweight;
+    TH3D *d0BarMassPhiEta_noweight;
+    TH3D *d0MassPhiEta_5bin;
+    TH3D *d0BarMassPhiEta_5bin;
+    TH3D *d0MassPhiEta_50;
+    TH3D *d0BarMassPhiEta_50;
+    TH3D *d0MassPhiEta_150;
+    TH3D *d0BarMassPhiEta_150;
     bool  readBadList();            
 		bool  readRunList();            
     bool  removeBadID(int runnumber) const;            
@@ -134,6 +148,12 @@ class StMyAnalysisMaker : public StMaker {
     TH2D *trackPhiEta;
     TH1D *testDPhi;
     TH2D *trackPhiEtaHFT;
+
+    /////////for D0 efficiency // last is for all centrality bins
+    TH3F *hD0Mc[10];
+    TH3F *hD0Rc[10];
+    TH3F *hD0BarMc[10];
+    TH3F *hD0BarRc[10];
 
     //
     //	//StKFVertexMaker private
