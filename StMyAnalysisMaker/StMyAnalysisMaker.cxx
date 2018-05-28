@@ -88,6 +88,8 @@ Int_t StMyAnalysisMaker::Init() {
   d0BarMassPhiEta_50 = new TH3D("d0BarMassPhiEta_50",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPhiEta_150 = new TH3D("d0MassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0BarMassPhiEta_150 = new TH3D("d0BarMassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_pt3 = new TH3D("d0MassPhiEta_pt3",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0BarMassPhiEta_pt3 = new TH3D("d0BarMassPhiEta_pt3",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPhiEta_5bin = new TH3D("d0MassPhiEta_5bin",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,5,0,PI,4,-0.8,0.8);
   d0BarMassPhiEta_5bin = new TH3D("d0BarMassPhiEta_5bin",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,5,0,PI,4,-0.8,0.8);
   testDPhi = new TH1D("testDPhi","testDPhi",400,-1*twoPI,twoPI);
@@ -111,10 +113,13 @@ Int_t StMyAnalysisMaker::Init() {
   d0BarMassPhiEta_50->Sumw2();
   d0MassPhiEta_150->Sumw2();
   d0BarMassPhiEta_150->Sumw2();
+  d0MassPhiEta_pt3->Sumw2();
+  d0BarMassPhiEta_pt3->Sumw2();
   d0MassPhiEta_5bin->Sumw2();
   d0BarMassPhiEta_5bin->Sumw2();
   TFile *f_eff = new TFile("eff_simu.root");
 
+  //X: pt (0,10,100), Y: eta(-1,1,20), Z: phi,(0,2pi,10);
   hD0Mc[9] = (TH3F *)f_eff->Get(Form("h3McD0PtYPhi_%i",0))->Clone(Form("hD0Mc_%i",9));
   hD0Rc[9] = (TH3F *)f_eff->Get(Form("h3RcD0PtYPhi_%i",0))->Clone(Form("hD0Rc_%i",9));
   hD0BarMc[9] = (TH3F *)f_eff->Get(Form("h3McD0BarPtYPhi_%i",0))->Clone(Form("hD0BarMc_%i",9));
@@ -126,12 +131,40 @@ Int_t StMyAnalysisMaker::Init() {
     hD0Rc[i] = (TH3F *)f_eff->Get(Form("h3RcD0PtYPhi_%i",i))->Clone(Form("hD0Rc_%i",i));
     hD0BarMc[i] = (TH3F *)f_eff->Get(Form("h3McD0BarPtYPhi_%i",i))->Clone(Form("hD0BarMc_%i",i));
     hD0BarRc[i] = (TH3F *)f_eff->Get(Form("h3RcD0BarPtYPhi_%i",i))->Clone(Form("hD0BarRc_%i",i));
+
+    // X: pt , Y: Y
+    hD0McPtY[i] = (TH2F *)hD0Mc[i]->Project3D("yx")->Clone(Form("hD0McPtY_%i",i));
+    hD0McPtY[i]->RebinY(2);
+    hD0BarMcPtY[i] = (TH2F *)hD0BarMc[i]->Project3D("yx")->Clone(Form("hD0BarMcPtY_%i",i));
+    hD0BarMcPtY[i]->RebinY(2);
+    hD0RcPtY[i] = (TH2F *)hD0Rc[i]->Project3D("yx")->Clone(Form("hD0RcPtY_%i",i));
+    hD0RcPtY[i]->RebinY(2);
+    hD0BarRcPtY[i] = (TH2F *)hD0BarRc[i]->Project3D("yx")->Clone(Form("hD0BarRcPtY_%i",i));
+    hD0BarRcPtY[i]->RebinY(2);
+
     if(i!=0)
     {
       hD0Mc[9]->Add(hD0Mc[i]);
       hD0Rc[9]->Add(hD0Rc[i]);
       hD0BarMc[9]->Add(hD0BarMc[i]);
       hD0BarRc[9]->Add(hD0BarRc[i]);
+    }
+    D0Mc[i][0] = (TH1F *)hD0Mc[i]->ProjectionX(Form("D0McPt_%i",i))->Clone(Form("D0McPt_%i",i));
+    D0Mc[i][1] = (TH1F *)hD0Mc[i]->ProjectionY(Form("D0McY_%i",i))->Clone(Form("D0McY_%i",i));
+    D0Mc[i][2] = (TH1F *)hD0Mc[i]->ProjectionZ(Form("D0McPhi_%i",i))->Clone(Form("D0McPhi_%i",i));
+    D0BarMc[i][0] = (TH1F *)hD0BarMc[i]->ProjectionX(Form("D0BarMcPt_%i",i))->Clone(Form("D0BarMcPt_%i",i));
+    D0BarMc[i][1] = (TH1F *)hD0BarMc[i]->ProjectionY(Form("D0BarMcY_%i",i))->Clone(Form("D0BarMcY_%i",i));
+    D0BarMc[i][2] = (TH1F *)hD0BarMc[i]->ProjectionZ(Form("D0BarMcPhi_%i",i))->Clone(Form("D0BarMcPhi_%i",i));
+    D0Rc[i][0] = (TH1F *)hD0Rc[i]->ProjectionX(Form("D0RcPt_%i",i))->Clone(Form("D0RcPt_%i",i));
+    D0Rc[i][1] = (TH1F *)hD0Rc[i]->ProjectionY(Form("D0RcY_%i",i))->Clone(Form("D0RcY_%i",i));
+    D0Rc[i][2] = (TH1F *)hD0Rc[i]->ProjectionZ(Form("D0RcPhi_%i",i))->Clone(Form("D0RcPhi_%i",i));
+    D0BarRc[i][0] = (TH1F *)hD0BarRc[i]->ProjectionX(Form("D0BarRcPt_%i",i))->Clone(Form("D0BarRcPt_%i",i));
+    D0BarRc[i][1] = (TH1F *)hD0BarRc[i]->ProjectionY(Form("D0BarRcY_%i",i))->Clone(Form("D0BarRcY_%i",i));
+    D0BarRc[i][2] = (TH1F *)hD0BarRc[i]->ProjectionZ(Form("D0BarRcPhi_%i",i))->Clone(Form("D0BarRcPhi_%i",i));
+    for(int j = 0;j<3;j++)
+    {
+      D0Rc[i][j]->Divide(D0Mc[i][j]);
+      D0BarRc[i][j]->Divide(D0Mc[i][j]);
     }
   }
   return kStOK;
@@ -165,6 +198,8 @@ void StMyAnalysisMaker::WriteHistograms() {
   d0BarMassPhiEta_50->Write();
   d0MassPhiEta_150->Write();
   d0BarMassPhiEta_150->Write();
+  d0MassPhiEta_pt3->Write();
+  d0BarMassPhiEta_pt3->Write();
   d0MassPhiEta_5bin->Write();
   d0BarMassPhiEta_5bin->Write();
   testDPhi->Write();
@@ -360,7 +395,7 @@ Int_t StMyAnalysisMaker::Make() {
       int charge = pion->charge() * kaon->charge();
       if(charge>0) continue;//only unlike-sign pairs
       StKaonPion *kp = new StKaonPion(kaon,pion,j,i,vtx,b);
-      if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
+      if(kp->pt()<2.5) continue;// require D0 pT > 1.5 GeV/c
       // if(kp->pt()<1.) continue;// require D0 pT > 1.5 GeV/c
       // StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
       // StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
@@ -391,12 +426,17 @@ Int_t StMyAnalysisMaker::Make() {
         if(kaon->charge() < 0)
         {
           d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
+          if(kp->pt() >= 3)
+            d0MassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
+
           d0MassPhiEta_noweight->Fill(kp->m(),deltaPhi,kpY);
           d0MassPhiEta_5bin->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           d0MassPtY->Fill(kp->m(),kp->pt(),kpY,1.0/d0_eff*reweight);
         }
         if(kaon->charge() > 0)
         {
+          if(kp->pt() >= 3)
+            d0BarMassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           d0BarMassPhiEta_noweight->Fill(kp->m(),deltaPhi,kpY);
           d0BarMassPtY->Fill(kp->m(),kp->pt(),kpY,1.0/d0_eff*reweight);
@@ -725,8 +765,9 @@ bool StMyAnalysisMaker::removeBadID(int runnumber) const
 bool StMyAnalysisMaker::readBadList()
 { 
   if(0) return kTRUE;
-  TString inf=mListDir + "/badList/";
-  inf += Form("badrun%dList%.1f.list",mRun,mEnergy);
+  // TString inf=mListDir + "/badList/";
+  // inf += Form("badrun%dList%.1f.list",mRun,mEnergy);
+  TString inf = mListDir + "goodruns2016_wpxl_grefhftrcut.txt";
   ifstream inrun; 
   inrun.open(inf);
   if ( inrun.fail() ) {
@@ -763,6 +804,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
       &&(!mEvent->isTrigger(520031))
       &&(!mEvent->isTrigger(520041))
       &&(!mEvent->isTrigger(520051))
+      &&(!mEvent->isTrigger(570001))//VPDMB-5-sst for production2
     )
     return false; 
 
@@ -783,7 +825,13 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   //event cut
   if(refMult <=2 || refMult > 1000) return false;
   testEvent->Fill(2);
-  if(removeBadID(runID))return false;            
+  auto it = find (mBadList.begin(),mBadList.end(), runID);
+  if (it == mBadList.end())
+  {
+      return false;
+  }
+  cout<<"good run"<<endl;
+  // if(removeBadID(runID))return false;            
   testEvent->Fill(3);
   if(fabs(VertexZ) > 100) return false; 
 
@@ -911,26 +959,60 @@ float StMyAnalysisMaker::getD0Efficiency(TLorentzVector &d0Lorentz,bool isD0)
   int ptBinRef = (int)(5./0.1)+1;
   if(d0Lorentz.Pt()>10)  ptBin = 100;
   int yBin = (int)((d0Lorentz.Rapidity()+1)/0.1)+1;
+  int yBin_new = (int)((d0Lorentz.Rapidity()+1)/0.2)+1;
   int phiBin = (int)((d0Lorentz.Phi()+TMath::Pi())/(0.2*TMath::Pi()))+1;
   float mcYield,rcYield;
   float mcYieldRef,rcYieldRef;
+  float mcYieldRef_err,rcYieldRef_err;
+  float mcYield_err,rcYield_err;
+  double eff_pt,eff_phi,eff_y;
+  double eff_pt_err;
   if (isD0)
   {
     mcYield = hD0Mc[centrality]->GetBinContent(ptBin,yBin,phiBin);
     rcYield = hD0Rc[centrality]->GetBinContent(ptBin,yBin,phiBin);
-    mcYieldRef = hD0Mc[9]->GetBinContent(ptBin,yBin,phiBin);
-    rcYieldRef = hD0Rc[9]->GetBinContent(ptBin,yBin,phiBin);
+    mcYield_err = hD0Mc[centrality]->GetBinError(ptBin,yBin,phiBin);
+    rcYield_err = hD0Rc[centrality]->GetBinError(ptBin,yBin,phiBin);
+
+    mcYieldRef = hD0McPtY[centrality]->GetBinContent(ptBin,yBin_new);
+    rcYieldRef = hD0RcPtY[centrality]->GetBinContent(ptBin,yBin_new);
+    mcYieldRef_err = hD0McPtY[centrality]->GetBinError(ptBin,yBin_new);
+    rcYieldRef_err = hD0RcPtY[centrality]->GetBinError(ptBin,yBin_new);
+
+    eff_pt = D0Rc[centrality][0]->GetBinContent(ptBin);
+    eff_pt_err = D0Rc[centrality][0]->GetBinError(ptBin);
+    eff_y = D0Rc[centrality][1]->GetBinContent(yBin);
+    eff_phi = D0Rc[centrality][2]->GetBinContent(phiBin);
   }
   else
   {
     mcYield = hD0BarMc[centrality]->GetBinContent(ptBin,yBin,phiBin);
     rcYield = hD0BarRc[centrality]->GetBinContent(ptBin,yBin,phiBin);
-    mcYieldRef = hD0BarMc[9]->GetBinContent(ptBin,yBin,phiBin);
-    rcYieldRef = hD0BarRc[9]->GetBinContent(ptBin,yBin,phiBin);
+    mcYield_err = hD0BarMc[centrality]->GetBinError(ptBin,yBin,phiBin);
+    rcYield_err = hD0BarRc[centrality]->GetBinError(ptBin,yBin,phiBin);
+
+    mcYieldRef = hD0BarMcPtY[centrality]->GetBinContent(ptBin,yBin_new);
+    rcYieldRef = hD0BarRcPtY[centrality]->GetBinContent(ptBin,yBin_new);
+    mcYieldRef_err = hD0BarMcPtY[centrality]->GetBinError(ptBin,yBin_new);
+    rcYieldRef_err = hD0BarRcPtY[centrality]->GetBinError(ptBin,yBin_new);
+
+    eff_pt = D0BarRc[centrality][0]->GetBinContent(ptBin);
+    eff_pt_err = D0BarRc[centrality][0]->GetBinError(ptBin);
+    eff_y = D0BarRc[centrality][1]->GetBinContent(yBin);
+    eff_phi = D0BarRc[centrality][2]->GetBinContent(phiBin);
   }
   // cout<<"pt bin = "<<ptBin<<"\ty bin = "<<yBin<<"\tphi bin = "<<phiBin<<endl;
   // cout<<"mc = "<<mcYield<<"\trc = "<<rcYield<<endl;
   double eff = rcYield/mcYield;
+  double eff_err = sqrt(pow(rcYield_err/mcYield,2)+pow(rcYield*mcYield_err/mcYield/mcYield,2));
   double effRef = rcYieldRef/mcYieldRef;
-  return eff/effRef;
+  double effRef_err = sqrt(pow(rcYieldRef_err/mcYieldRef,2)+pow(rcYieldRef*mcYieldRef_err/mcYieldRef/mcYieldRef,2));
+  // cout<<"############ efficiency = "<<eff<<" +/- "<<eff_err<<endl;
+  // cout<<"############ relative error = "<<eff_err/eff<<endl;
+  // cout<<"############ pt efficiency = "<<eff_pt<<" +/- "<<eff_pt_err<<endl;
+  // cout<<"############ relative error = "<<eff_pt_err/eff_pt<<endl;
+  // cout<<"############ ref efficiency = "<<effRef<<" +/- "<<effRef_err<<endl;
+  // cout<<"############ relative error = "<<effRef_err/effRef<<endl;
+  // double eff = eff_pt*eff_y*eff_phi/0.005/0.005/0.05;
+  return effRef;
 }

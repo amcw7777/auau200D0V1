@@ -134,6 +134,8 @@ class StMyAnalysisMaker : public StMaker {
     TH3D *d0BarMassPhiEta_50;
     TH3D *d0MassPhiEta_150;
     TH3D *d0BarMassPhiEta_150;
+    TH3D *d0MassPhiEta_pt3;
+    TH3D *d0BarMassPhiEta_pt3;
     bool  readBadList();            
 		bool  readRunList();            
     bool  removeBadID(int runnumber) const;            
@@ -154,6 +156,16 @@ class StMyAnalysisMaker : public StMaker {
     TH3F *hD0Rc[10];
     TH3F *hD0BarMc[10];
     TH3F *hD0BarRc[10];
+
+    TH2F *hD0McPtY[10];
+    TH2F *hD0RcPtY[10];
+    TH2F *hD0BarMcPtY[10];
+    TH2F *hD0BarRcPtY[10];
+
+    TH1F *D0Mc[10][3];
+    TH1F *D0Rc[10][3];
+    TH1F *D0BarMc[10][3];
+    TH1F *D0BarRc[10][3];
 
     //
     //	//StKFVertexMaker private
