@@ -85,8 +85,11 @@ class StMyAnalysisMaker : public StMaker {
     /*
     */
   private:
+    StPicoEvent *mPicoEvent;
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
+    StThreeVectorF mVtx;
+    float mBField;
 
     static StRefMultCorr* mRefMultCorr;
     TString    mOutName;
@@ -98,15 +101,18 @@ class StMyAnalysisMaker : public StMaker {
     bool  isGoodTof(StPicoTrack const*) const;
     bool  isGoodEvent(StPicoEvent const*);
     bool  isTpcPion(StPicoTrack const*) const;
-    bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
+    bool  isTpcKaon(StPicoTrack const*) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
     bool isTofPion(StPicoTrack const* const, float beta) const;
-    float getTofBeta(StPicoTrack const*,StThreeVectorF const * pVtx) const;
+    float getTofBeta(StPicoTrack const*) const;
     // int isD0Pair(StKaonPion const*) const;
     int isD0Pair(StKaonPion const* const ) const;
     int isD0Pair50(StKaonPion const* const ) const;
     int isD0Pair150(StKaonPion const* const ) const;
     float getD0Efficiency(TLorentzVector &,bool);
+    int getCentIndex(int const) const;
+    int getPtIndex(float const) const;
+
 
     StRefMultCorr* mGRefMultCorrUtil; 
     //d0 v2 calculation
@@ -134,6 +140,10 @@ class StMyAnalysisMaker : public StMaker {
     TH3D *d0BarMassPhiEta_50;
     TH3D *d0MassPhiEta_150;
     TH3D *d0BarMassPhiEta_150;
+    TH3D *d0MassPhiEta_pt2;
+    TH3D *d0BarMassPhiEta_pt2;
+    TH3D *d0MassPhiEta_pt25;
+    TH3D *d0BarMassPhiEta_pt25;
     TH3D *d0MassPhiEta_pt3;
     TH3D *d0BarMassPhiEta_pt3;
     bool  readBadList();            

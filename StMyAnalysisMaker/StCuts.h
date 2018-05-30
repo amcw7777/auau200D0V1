@@ -36,13 +36,13 @@ namespace mycuts
    extern float const kTofBetaDiff;
 
    // tree kaonPion pair cuts
-   extern float const cosTheta;
-   extern float const dcaDaughters;
-   extern float const decayLength;
-   extern float const minMass;
-   extern float const maxMass;
-   extern float const kDca;
-   extern float const pDca;
+   // extern float const cosTheta;
+   // extern float const dcaDaughters;
+   // extern float const decayLength;
+   // extern float const minMass;
+   // extern float const maxMass;
+   // extern float const kDca;
+   // extern float const pDca;
 
    // histograms kaonPion pair cuts
    extern float const qaNHitsFit;

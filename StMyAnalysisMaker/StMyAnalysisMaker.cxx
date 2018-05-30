@@ -15,7 +15,7 @@
 #include "StPicoD0EventMaker/StKaonPion.h"
 #include <vector>
 #include "phys_constants.h"
-#include "StCuts.h"
+#include "StCuts.cxx"
 
 #include "StBTofUtil/tofPathLength.hh"
 #include "TRandom3.h"
@@ -39,10 +39,13 @@ ClassImp(StMyAnalysisMaker)
 {
   mPicoDstMaker = picoMaker;
   mPicoDst = 0;
+  cout<<"load picoDst"<<endl;
+  cout<<"load picoEvent"<<endl;
   mOutName = outName;
   mRun    = 16;
   mEnergy =200;
   mListDir="./";
+  cout<<"load others"<<endl;
 }
 
 //----------------------------------------------------------------------------- 
@@ -88,6 +91,10 @@ Int_t StMyAnalysisMaker::Init() {
   d0BarMassPhiEta_50 = new TH3D("d0BarMassPhiEta_50",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPhiEta_150 = new TH3D("d0MassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0BarMassPhiEta_150 = new TH3D("d0BarMassPhiEta_150",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_pt2 = new TH3D("d0MassPhiEta_pt2",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0BarMassPhiEta_pt2 = new TH3D("d0BarMassPhiEta_pt2",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0MassPhiEta_pt25 = new TH3D("d0MassPhiEta_pt25",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
+  d0BarMassPhiEta_pt25 = new TH3D("d0BarMassPhiEta_pt25",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPhiEta_pt3 = new TH3D("d0MassPhiEta_pt3",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0BarMassPhiEta_pt3 = new TH3D("d0BarMassPhiEta_pt3",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,4,0,PI,4,-0.8,0.8);
   d0MassPhiEta_5bin = new TH3D("d0MassPhiEta_5bin",";D^{0} mass (GeV/c^{2});#phi_{D^{0}}-#psi_{ZDC};#eta",50,1.6,2.1,5,0,PI,4,-0.8,0.8);
@@ -113,6 +120,10 @@ Int_t StMyAnalysisMaker::Init() {
   d0BarMassPhiEta_50->Sumw2();
   d0MassPhiEta_150->Sumw2();
   d0BarMassPhiEta_150->Sumw2();
+  d0MassPhiEta_pt2->Sumw2();
+  d0BarMassPhiEta_pt2->Sumw2();
+  d0MassPhiEta_pt25->Sumw2();
+  d0BarMassPhiEta_pt25->Sumw2();
   d0MassPhiEta_pt3->Sumw2();
   d0BarMassPhiEta_pt3->Sumw2();
   d0MassPhiEta_5bin->Sumw2();
@@ -167,6 +178,7 @@ Int_t StMyAnalysisMaker::Init() {
       D0BarRc[i][j]->Divide(D0Mc[i][j]);
     }
   }
+  cout<<"Initialization done"<<endl;
   return kStOK;
 }
 
@@ -198,6 +210,10 @@ void StMyAnalysisMaker::WriteHistograms() {
   d0BarMassPhiEta_50->Write();
   d0MassPhiEta_150->Write();
   d0BarMassPhiEta_150->Write();
+  d0MassPhiEta_pt2->Write();
+  d0BarMassPhiEta_pt2->Write();
+  d0MassPhiEta_pt25->Write();
+  d0BarMassPhiEta_pt25->Write();
   d0MassPhiEta_pt3->Write();
   d0BarMassPhiEta_pt3->Write();
   d0MassPhiEta_5bin->Write();
@@ -233,13 +249,21 @@ Int_t StMyAnalysisMaker::Make() {
     LOG_WARN << " No PicoDst! Skip! " << endm;
     return kStWarn;
   }
-  StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
-  const int  runID    = event->runId();
+  mPicoEvent = (StPicoEvent *)mPicoDst->event();
+  if(!mPicoEvent)
+  {
+    cout<<"no picoEvent at all"<<endl;
+    LOG_WARN<<"no picoEvent at all"<<endl;
+    return kStWarn;
+  }
+  // StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
+  mVtx = mPicoEvent->primaryVertex();
+  mBField = mPicoEvent->bField();
+  const int  runID    = mPicoEvent->runId();
   // const int  evtID    = event->eventId();
   // const int refMult  = event->grefMult();
-  if(!(isGoodEvent(event)))
+  if(!(isGoodEvent()))
   { 
-    // LOG_WARN << " Not Min Bias! Skip! " << endm;
     return kStWarn;
   }
 
@@ -249,21 +273,8 @@ Int_t StMyAnalysisMaker::Make() {
     return kStWarn;
   }
 
-  StThreeVectorF vtx = event->primaryVertex();
-  float b = event->bField();
-  // double vpdvz = mPicoDst->event()->vzVpd();
-  // double vz = vtx.z();
-  // if( fabs(vz)>6 && fabs(vz-vpdvz)>3 ) 
-  //   return kStWarn;
-  //StRefMultCorr
-  // if ( runID != mPrevRunId ) {
-  // 	mRefMultCorr->init(runID);
-  // 	mPrevRunId = runID;
-  // 	cout << "reset mPrevRunId = " << mPrevRunId << endl;
-  // }
-  // //mRefMultCorr->initEvent(refMult,VertexZ);
-  // mRefMultCorr->initEvent(refMult,vz,event->ZDCx());
-  //
+  // StThreeVectorF vtx = mPicoEvent->primaryVertex();
+  // float b = mPicoEvent->bField();
   int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
   if(centrality == 7 || centrality == 8)
   {
@@ -292,10 +303,10 @@ Int_t StMyAnalysisMaker::Make() {
   ////////////  ZDCSMD ////////////////
   float ZDCSMDadc[32];
   for(int i=0;i<8;i++){
-    ZDCSMDadc[i]   = 1.* event->ZdcSmdEastHorizontal(i);   // picoDst function i 0-7
-    ZDCSMDadc[i+8] = 1.* event->ZdcSmdEastVertical(i);
-    ZDCSMDadc[i+16]= 1.* event->ZdcSmdWestHorizontal(i);
-    ZDCSMDadc[i+24]= 1.* event->ZdcSmdWestVertical(i);
+    ZDCSMDadc[i]   = 1.* mPicoEvent->ZdcSmdEastHorizontal(i);   // picoDst function i 0-7
+    ZDCSMDadc[i+8] = 1.* mPicoEvent->ZdcSmdEastVertical(i);
+    ZDCSMDadc[i+16]= 1.* mPicoEvent->ZdcSmdWestHorizontal(i);
+    ZDCSMDadc[i+24]= 1.* mPicoEvent->ZdcSmdWestVertical(i);
   }
 
 
@@ -336,20 +347,19 @@ Int_t StMyAnalysisMaker::Make() {
   {
     StPicoTrack const* itrk = mPicoDst->track(i);
     if(!isGoodTrack(itrk))  continue;
-    StThreeVectorF mom= itrk->gMom(vtx,b);
+    StThreeVectorF mom= itrk->gMom(mVtx,mBField);
     double eta  = mom.pseudoRapidity();
     double phi  = mom.phi();
-    double dca = (vtx - itrk->dcaPoint()).mag();
+    double dca = (mVtx - itrk->dcaPoint()).mag();
     trackPhiEta->Fill(phi,eta);
     // if (isTpcPion(itrk) && fabs(dca)<1.5) 
     //   testPionIndex.push_back(i);
-    if(!(itrk->isHft())) continue;
     trackPhiEtaHFT->Fill(phi,eta);
 
-    float kBeta = getTofBeta(itrk,&vtx);
+    float kBeta = getTofBeta(itrk);
     bool tofAvailable = kBeta>0;
 
-    bool tpcKaon = isTpcKaon(itrk,&vtx);
+    bool tpcKaon = isTpcKaon(itrk);
     bool tofKaon = tofAvailable && isTofKaon(itrk,kBeta);
     bool goodKaon = tofAvailable? tofKaon&&tpcKaon : tpcKaon;
     if(goodKaon) 
@@ -361,30 +371,6 @@ Int_t StMyAnalysisMaker::Make() {
     if (goodPion) 
       pionIndex.push_back(i);
   }
-  /*
-  for(unsigned int i=0;i<testPionIndex.size();i++)
-  {
-    if(centrality!=4) continue;
-    StPicoTrack const* itrk = mPicoDst->track(testPionIndex[i]);
-    StThreeVectorF mom= itrk->gMom();
-    double eta  = mom.pseudoRapidity();
-    TLorentzVector pionLorentz;
-    pionLorentz.SetPtEtaPhiM(mom.perp(),eta,mom.phi(),0.139);
-    double pionY = pionLorentz.Rapidity();
-    double phi  = mom.phi();
-    if(phi<0.0) phi += twoPI;
-    double mcos1=cos(phi);
-    double msin1=sin(phi);
-    double v1ZDC1F = mcos1*cos(1.*mZDC1Event_PsiF) + msin1*sin(1.*mZDC1Event_PsiF);
-    int charge = itrk->charge();
-    if(charge > 0)
-      pionV1Plus->Fill(pionY,v1ZDC1F,reweight);
-    else
-      pionV1Minus->Fill(pionY,v1ZDC1F,reweight);
-  }
-  */
-
-
   for(unsigned int i=0;i<pionIndex.size();i++)
   {
     StPicoTrack const* pion= mPicoDst->track(pionIndex[i]);
@@ -394,8 +380,8 @@ Int_t StMyAnalysisMaker::Make() {
 
       int charge = pion->charge() * kaon->charge();
       if(charge>0) continue;//only unlike-sign pairs
-      StKaonPion *kp = new StKaonPion(kaon,pion,j,i,vtx,b);
-      if(kp->pt()<2.5) continue;// require D0 pT > 1.5 GeV/c
+      StKaonPion *kp = new StKaonPion(kaon,pion,j,i,mVtx,mBField);
+      if(kp->pt()<1.5) continue;// require D0 pT > 1.5 GeV/c
       // if(kp->pt()<1.) continue;// require D0 pT > 1.5 GeV/c
       // StPicoTrack const* kaon = mPicoDst->track(kp->kaonIdx());
       // StPicoTrack const* pion = mPicoDst->track(kp->pionIdx());
@@ -426,6 +412,10 @@ Int_t StMyAnalysisMaker::Make() {
         if(kaon->charge() < 0)
         {
           d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
+          if(kp->pt() >= 2)
+            d0MassPhiEta_pt2->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
+          if(kp->pt() >= 2.5)
+            d0MassPhiEta_pt25->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           if(kp->pt() >= 3)
             d0MassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
 
@@ -435,6 +425,10 @@ Int_t StMyAnalysisMaker::Make() {
         }
         if(kaon->charge() > 0)
         {
+          if(kp->pt() >= 2)
+            d0BarMassPhiEta_pt2->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
+          if(kp->pt() >= 2.5)
+            d0BarMassPhiEta_pt25->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           if(kp->pt() >= 3)
             d0BarMassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
           d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.0/d0_eff*reweight);
@@ -493,13 +487,13 @@ Int_t StMyAnalysisMaker::Make() {
 bool StMyAnalysisMaker::isTofPion(StPicoTrack const * const trk, float beta) const
 {
   bool tofPion = false;
-  StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
-  float b = event->bField();
-  StThreeVectorF vtx = event->primaryVertex();
+  // StPicoEvent *mPicoEvent = (StPicoEvent *)mPicoDst->event();
+  // float b = mPicoEvent->bField();
+  // StThreeVectorF vtx = mPicoEvent->primaryVertex();
   if(beta>0)
   {
     // double ptot = trk->dcaGeometry().momentum().mag();
-    double ptot = trk->gMom(vtx,b).mag();
+    double ptot = trk->gMom(mVtx,mBField).mag();
     float beta_k = ptot/sqrt(ptot*ptot+M_PION_PLUS*M_PION_PLUS);
     tofPion = fabs(1/beta - 1/beta_k) < mycuts::kTofBetaDiff ? true : false;
   }
@@ -512,20 +506,20 @@ bool StMyAnalysisMaker::isTofPion(StPicoTrack const * const trk, float beta) con
 bool StMyAnalysisMaker::isTofKaon(StPicoTrack const * const trk, float beta) const
 {
   bool tofKaon = false;
-  StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
-  float b = event->bField();
-  StThreeVectorF vtx = event->primaryVertex();
+  // StPicoEvent *mPicoEvent = (StPicoEvent *)mPicoDst->event();
+  // float b = mPicoEvent->bField();
+  // StThreeVectorF vtx = mPicoEvent->primaryVertex();
   if(beta>0)
   {
     // double ptot = trk->dcaGeometry().momentum().mag();
-    double ptot = trk->gMom(vtx,b).mag();
+    double ptot = trk->gMom(mVtx,mBField).mag();
     float beta_k = ptot/sqrt(ptot*ptot+M_KAON_PLUS*M_KAON_PLUS);
     tofKaon = fabs(1/beta - 1/beta_k) < mycuts::kTofBetaDiff ? true : false;
   }
 
   return tofKaon;
 }
-float StMyAnalysisMaker::getTofBeta(StPicoTrack const * const trk, StThreeVectorF const* const pVtx) const
+float StMyAnalysisMaker::getTofBeta(StPicoTrack const * const trk) const
 {
 
   int index2tof = trk->bTofPidTraitsIndex();
@@ -546,7 +540,7 @@ float StMyAnalysisMaker::getTofBeta(StPicoTrack const * const trk, StThreeVector
         // StPhysicalHelixD helix = trk->helix();
         StPhysicalHelixD helix = trk->helix(mPicoDstMaker->picoDst()->event()->bField());
 
-        float L = tofPathLength(pVtx, &btofHitPos, helix.curvature());
+        float L = tofPathLength(&mVtx, &btofHitPos, helix.curvature());
         float tof = tofPid->btof();
         if (tof > 0) beta = L / (tof * (C_C_LIGHT / 1.e9));
         else beta = std::numeric_limits<float>::quiet_NaN();
@@ -562,7 +556,7 @@ bool StMyAnalysisMaker::isTpcPion(StPicoTrack const * const trk) const
   return fabs(trk->nSigmaPion()) < mycuts::nSigmaPion;
 }
 //-----------------------------------------------------------------------------
-bool StMyAnalysisMaker::isTpcKaon(StPicoTrack const * const trk, StThreeVectorF const* const pVtx) const
+bool StMyAnalysisMaker::isTpcKaon(StPicoTrack const * const trk) const
 {
   return fabs(trk->nSigmaKaon()) < mycuts::nSigmaKaon;
   //      || tofKaon;
@@ -575,12 +569,14 @@ bool StMyAnalysisMaker::isGoodTrack(StPicoTrack const * const trk) const
   // It is done here for tests on the preview II data.
   // The new StPicoTrack which is used in official production has a method to check this
   // return trk->gPt() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && trk->nHitsDedx() >= 16;
-  StPicoEvent *event = (StPicoEvent *)mPicoDst->event();
-  StThreeVectorF vtx = event->primaryVertex();
-  float b = event->bField();
-  StThreeVectorF gmom = trk->gMom(vtx,b);
-  StPhysicalHelixD helix = trk->helix(b);
-  return gmom.perp() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && fabs(gmom.pseudoRapidity()) < 1 && fabs(helix.geometricSignedDistance(vtx)) > 0.005;
+  if (!trk->isHft())
+    return false;
+  // StPicoEvent *mPicoEvent = (StPicoEvent *)mPicoDst->event();
+  // StThreeVectorF vtx = mPicoEvent->primaryVertex();
+  // float b = mPicoEvent->bField();
+  StThreeVectorF gmom = trk->gMom(mVtx,mBField);
+  StPhysicalHelixD helix = trk->helix(mBField);
+  return gmom.perp() > 0.6 && trk->nHitsFit() >= 20 && (1.0*trk->nHitsFit()/trk->nHitsMax())>0.52 && fabs(gmom.pseudoRapidity()) < 1 && fabs(helix.geometricSignedDistance(mVtx)) > 0.005;
   //return  trk->nHitsFit() >= mycuts::nHitsFit;
 }
 ////////////////////////////////////////////////////////////////////////////////////
@@ -608,38 +604,21 @@ bool StMyAnalysisMaker::isGoodTof(StPicoTrack const * const trk) const
 
 int StMyAnalysisMaker::isD0Pair(StKaonPion const* const kp) const
 {
-
+  int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
+  const int indexCent = getCentIndex(centrality);
+  const int indexPt = getPtIndex(kp->pt());
   bool pairCuts = false;
-  if(kp->pt()<1)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0061 &&
-      kp->pionDca() > 0.0110 && kp->kaonDca() > 0.0103 &&
-      kp->dcaDaughters() < 0.0084 && kp->decayLength()>0.0145;  
-  }
-  else if(kp->pt()<2)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0049 &&
-      kp->pionDca() > 0.0111 && kp->kaonDca() > 0.0091 &&
-      kp->dcaDaughters() < 0.0066 && kp->decayLength()>0.0181;  
-  }
-  else if(kp->pt()<3)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0038 &&
-      kp->pionDca() > 0.0086 && kp->kaonDca() > 0.0095 &&
-      kp->dcaDaughters() < 0.0057 && kp->decayLength()>0.0212;  
-  }
-  else if(kp->pt()<5)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0038 &&
-      kp->pionDca() > 0.0081 && kp->kaonDca() > 0.0079 &&
-      kp->dcaDaughters() < 0.0050 && kp->decayLength()>0.0247;  
-  }
-  else 
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0040 &&
-      kp->pionDca() > 0.0062 && kp->kaonDca() > 0.0058 &&
-      kp->dcaDaughters() < 0.0060 && kp->decayLength()>0.0259;  
-  }
+  if(indexCent<0) return false;
+  if(indexPt<0) return false;
+  pairCuts = ( cos(kp->pointingAngle())> mycuts::cosTheta
+      && kp->kaonDca() > mycuts::kDca[indexCent][indexPt]
+      && kp->pionDca() > mycuts::pDca[indexCent][indexPt]
+      && kp->dcaDaughters() < mycuts::dcaDaughters[indexCent][indexPt]
+      && sin(kp->pointingAngle())*kp->decayLength() < mycuts::dcaV0ToPv[indexCent][indexPt]
+      && kp->decayLength() > mycuts::decayLength[indexCent][indexPt]
+      );
+
+  
   // int charge = kaon->charge() * pion->charge();
   // if(charge>0)
   //   charge = kaon->charge()>0 ? 1:2;
@@ -652,38 +631,21 @@ int StMyAnalysisMaker::isD0Pair(StKaonPion const* const kp) const
 //-----------------------------------------------------------------------------
 int StMyAnalysisMaker::isD0Pair50(StKaonPion const* const kp) const
 {
-
+  int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
+  const int indexCent = getCentIndex(centrality);
+  const int indexPt = getPtIndex(kp->pt());
   bool pairCuts = false;
-  if(kp->pt()<1)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0044 &&
-      kp->pionDca() > 0.0120 && kp->kaonDca() > 0.0119 &&
-      kp->dcaDaughters() < 0.0069 && kp->decayLength()>0.0144;  
-  }
-  else if(kp->pt()<2)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0036 &&
-      kp->pionDca() > 0.0102 && kp->kaonDca() > 0.0110 &&
-      kp->dcaDaughters() < 0.0048 && kp->decayLength()>0.0204;  
-  }
-  else if(kp->pt()<3)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0031 &&
-      kp->pionDca() > 0.0118 && kp->kaonDca() > 0.0109 &&
-      kp->dcaDaughters() < 0.0044 && kp->decayLength()>0.0242;  
-  }
-  else if(kp->pt()<5)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0026 &&
-      kp->pionDca() > 0.0109 && kp->kaonDca() > 0.0106 &&
-      kp->dcaDaughters() < 0.0049 && kp->decayLength()>0.0245;  
-  }
-  else 
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0032 &&
-      kp->pionDca() > 0.0096 && kp->kaonDca() > 0.0080 &&
-      kp->dcaDaughters() < 0.0047 && kp->decayLength()>0.0300;  
-  }
+  if(indexCent<0) return false;
+  if(indexPt<0) return false;
+  pairCuts = ( cos(kp->pointingAngle())> mycuts::cosTheta
+      && kp->kaonDca() > mycuts::kDca1[indexCent][indexPt]
+      && kp->pionDca() > mycuts::pDca1[indexCent][indexPt]
+      && kp->dcaDaughters() < mycuts::dcaDaughters1[indexCent][indexPt]
+      && sin(kp->pointingAngle())*kp->decayLength() < mycuts::dcaV0ToPv1[indexCent][indexPt]
+      && kp->decayLength() > mycuts::decayLength1[indexCent][indexPt]
+      );
+
+  
   // int charge = kaon->charge() * pion->charge();
   // if(charge>0)
   //   charge = kaon->charge()>0 ? 1:2;
@@ -694,41 +656,23 @@ int StMyAnalysisMaker::isD0Pair50(StKaonPion const* const kp) const
     return 0;
 }
 //-----------------------------------------------------------------------------
-
 int StMyAnalysisMaker::isD0Pair150(StKaonPion const* const kp) const
 {
-
+  int centrality = mRefMultCorr->getCentralityBin9();  // 0 - 8  be careful !!!!!!!! 
+  const int indexCent = getCentIndex(centrality);
+  const int indexPt = getPtIndex(kp->pt());
   bool pairCuts = false;
-  if(kp->pt()<1)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0072 &&
-      kp->pionDca() > 0.0092 && kp->kaonDca() > 0.0105 &&
-      kp->dcaDaughters() < 0.0077 && kp->decayLength()>0.0110;  
-  }
-  else if(kp->pt()<2)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0053 &&
-      kp->pionDca() > 0.0078 && kp->kaonDca() > 0.0068 &&
-      kp->dcaDaughters() < 0.0078 && kp->decayLength()>0.0168;  
-  }
-  else if(kp->pt()<3)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0047 &&
-      kp->pionDca() > 0.0086 && kp->kaonDca() > 0.0080 &&
-      kp->dcaDaughters() < 0.0074 && kp->decayLength()>0.0187;  
-  }
-  else if(kp->pt()<5)
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0042 &&
-      kp->pionDca() > 0.0065 && kp->kaonDca() > 0.0066 &&
-      kp->dcaDaughters() < 0.0068 && kp->decayLength()>0.0199;  
-  }
-  else 
-  {
-    pairCuts =  sin(kp->pointingAngle())*kp->decayLength() < 0.0062 &&
-      kp->pionDca() > 0.0047 && kp->kaonDca() > 0.0041 &&
-      kp->dcaDaughters() < 0.0066 && kp->decayLength()>0.0180;  
-  }
+  if(indexCent<0) return false;
+  if(indexPt<0) return false;
+  pairCuts = ( cos(kp->pointingAngle())> mycuts::cosTheta
+      && kp->kaonDca() > mycuts::kDca2[indexCent][indexPt]
+      && kp->pionDca() > mycuts::pDca2[indexCent][indexPt]
+      && kp->dcaDaughters() < mycuts::dcaDaughters2[indexCent][indexPt]
+      && sin(kp->pointingAngle())*kp->decayLength() < mycuts::dcaV0ToPv2[indexCent][indexPt]
+      && kp->decayLength() > mycuts::decayLength2[indexCent][indexPt]
+      );
+
+  
   // int charge = kaon->charge() * pion->charge();
   // if(charge>0)
   //   charge = kaon->charge()>0 ? 1:2;
@@ -738,6 +682,7 @@ int StMyAnalysisMaker::isD0Pair150(StKaonPion const* const kp) const
   else
     return 0;
 }
+
 //-----------------------------------------------------------------------------
 
 bool StMyAnalysisMaker::isGoodHadron(StPicoTrack const * const trk) const
@@ -788,23 +733,23 @@ bool StMyAnalysisMaker::readBadList()
   return kTRUE;
 }
 //------------------------------------------------------------------------------
-bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
+bool StMyAnalysisMaker::isGoodEvent()
 {	
 
-  const int  runID    = mEvent->runId();
-  const int  evtID    = mEvent->eventId();
-  const int  refMult  = mEvent->grefMult();
-  // const int grefMult  = mEvent->grefMult();
-  // const int  ranking  = mEvent->ranking();
+  const int  runID    = mPicoEvent->runId();
+  const int  evtID    = mPicoEvent->eventId();
+  const int  refMult  = mPicoEvent->grefMult();
+  // const int grefMult  = mPicoEvent->grefMult();
+  // const int  ranking  = mPicoEvent->ranking();
 
   testEvent->Fill(0);
-  if((!mEvent->isTrigger(520001))
-      &&(!mEvent->isTrigger(520011))
-      &&(!mEvent->isTrigger(520021))
-      &&(!mEvent->isTrigger(520031))
-      &&(!mEvent->isTrigger(520041))
-      &&(!mEvent->isTrigger(520051))
-      &&(!mEvent->isTrigger(570001))//VPDMB-5-sst for production2
+  if((!mPicoEvent->isTrigger(520001))
+      &&(!mPicoEvent->isTrigger(520011))
+      &&(!mPicoEvent->isTrigger(520021))
+      &&(!mPicoEvent->isTrigger(520031))
+      &&(!mPicoEvent->isTrigger(520041))
+      &&(!mPicoEvent->isTrigger(520051))
+      &&(!mPicoEvent->isTrigger(570001))//VPDMB-5-sst for production2
     )
     return false; 
 
@@ -816,11 +761,11 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   mTempRunId=runID;  mTempEvtId=evtID;
   ////////////////////////////////////
 
-  StThreeVectorF Vertex3D=mEvent->primaryVertex();
+  StThreeVectorF Vertex3D=mPicoEvent->primaryVertex();
   const double VertexX = Vertex3D.x(); 
   const double VertexY = Vertex3D.y(); 
   const double VertexZ = Vertex3D.z(); 
-  const double vpdVz   = mEvent->vzVpd();
+  const double vpdVz   = mPicoEvent->vzVpd();
 
   //event cut
   if(refMult <=2 || refMult > 1000) return false;
@@ -830,7 +775,6 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
   {
       return false;
   }
-  cout<<"good run"<<endl;
   // if(removeBadID(runID))return false;            
   testEvent->Fill(3);
   if(fabs(VertexZ) > 100) return false; 
@@ -868,7 +812,7 @@ bool StMyAnalysisMaker::isGoodEvent(StPicoEvent const*mEvent)
     cout << "reset mPrevRunId = " << mPrevRunId << endl;
   }
   // //mRefMultCorr->initEvent(refMult,VertexZ);
-  mRefMultCorr->initEvent(refMult,VertexZ,mEvent->ZDCx());
+  mRefMultCorr->initEvent(refMult,VertexZ,mPicoEvent->ZDCx());
   // reweight    = mRefMultCorr->getWeight();
   // double mult_corr= mRefMultCorr->getRefMultCorr() ;
   //
@@ -1015,4 +959,27 @@ float StMyAnalysisMaker::getD0Efficiency(TLorentzVector &d0Lorentz,bool isD0)
   // cout<<"############ relative error = "<<effRef_err/effRef<<endl;
   // double eff = eff_pt*eff_y*eff_phi/0.005/0.005/0.05;
   return effRef;
+}
+// get pt bin
+int StMyAnalysisMaker::getPtIndex(float const pt) const 
+{
+    int bin = -1;
+    for (int i = 0; i < mycuts::nPtBins; i++)
+    {
+        if ((pt >= mycuts::PtEdge[i]) && (pt < mycuts::PtEdge[i + 1]))
+            bin = i;
+    }
+    return bin;
+}
+
+// get cent bin
+int StMyAnalysisMaker::getCentIndex(int const cent) const 
+{
+    int bin = -1;
+    for (int i = 0; i < mycuts::nCent; i++)
+    {
+        if ((cent > mycuts::CentEdge[i]) && (cent < mycuts::CentEdge[i + 1]))
+            bin = i;
+    }
+    return bin;
 }
