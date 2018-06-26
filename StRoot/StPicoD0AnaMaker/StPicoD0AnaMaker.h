@@ -137,6 +137,8 @@ class StPicoD0AnaMaker : public StMaker
     TH3D *d0BarMassPt;
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
+    TH3D *d0MassPhiEta_pt3;
+    TH3D *d0BarMassPhiEta_pt3;
 
     TH3D *d0MassPhiEta_50;
     TH3D *d0BarMassPhiEta_50;
@@ -144,6 +146,8 @@ class StPicoD0AnaMaker : public StMaker
     TH3D *d0BarMassPhiEta_150;
     TH3D *d0MassPhiEta_5bin;
     TH3D *d0BarMassPhiEta_5bin;
+    TH3D *d0MassPhiEta_noeff;
+    TH3D *d0BarMassPhiEta_noeff;
 
     Int_t CheckrunNumber(int runnumber) const;            
     TH1D *zdcPsi;
@@ -166,6 +170,8 @@ class StPicoD0AnaMaker : public StMaker
     };
     TH3F *h3PtCentY_clone;
     TH3F *h3PtCentYcut_clone;
+    TH2F *h3PtY_clone;
+    TH2F *h3PtYcut_clone;
 
     double efficiency[4][6];
     ClassDef(StPicoD0AnaMaker, 1)
