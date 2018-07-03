@@ -89,6 +89,10 @@ class StMyAnalysisMaker : public StMaker {
     StPicoDstMaker *mPicoDstMaker;
     StPicoDst      *mPicoDst;
     StThreeVectorF mVtx;
+    float mZDC1Event_PsiF; 
+    float mZDC1Event_PsiOrigin; 
+    float mZDC1Event_PsiW;
+    float mZDC1Event_PsiE;
     float mBField;
 
     static StRefMultCorr* mRefMultCorr;
@@ -96,8 +100,11 @@ class StMyAnalysisMaker : public StMaker {
 
     TNtuple*   mD0Tuple;
     mZDCSMD *miniZDCSMD;
+    int reconstructZDC();
+    void fillKaonPion(vector<int>& , vector<int>&);
     bool isGoodEvent();
     bool  isGoodTrack(StPicoTrack const*) const;
+    bool  isLooseTrack(StPicoTrack const*) const;
     bool  isGoodTof(StPicoTrack const*) const;
     bool  isGoodEvent(StPicoEvent const*);
     bool  isTpcPion(StPicoTrack const*) const;
@@ -107,6 +114,7 @@ class StMyAnalysisMaker : public StMaker {
     float getTofBeta(StPicoTrack const*) const;
     // int isD0Pair(StKaonPion const*) const;
     int isD0Pair(StKaonPion const* const ) const;
+    int isD0Pair14(StKaonPion const* const ) const;
     int isD0Pair50(StKaonPion const* const ) const;
     int isD0Pair150(StKaonPion const* const ) const;
     float getD0Efficiency(TLorentzVector &,bool);
@@ -146,6 +154,10 @@ class StMyAnalysisMaker : public StMaker {
     TH3D *d0BarMassPhiEta_pt25;
     TH3D *d0MassPhiEta_pt3;
     TH3D *d0BarMassPhiEta_pt3;
+    TH3D *d0MassPhiEta_nHits25;
+    TH3D *d0BarMassPhiEta_nHits25;
+    TH3D *d0MassPhiEta_noHitsRatio;
+    TH3D *d0BarMassPhiEta_noHitsRatio;
     bool  readBadList();            
 		bool  readRunList();            
     bool  removeBadID(int runnumber) const;            
