@@ -92,6 +92,7 @@ class StPicoD0AnaMaker : public StMaker
     int isD0Pair50(StKaonPion const*) const;
     int isD0Pair150(StKaonPion const*) const;
     bool  isGoodTrack(StPicoTrack const*, StPicoEvent const*) const;
+    bool  isLooseTrack(StPicoTrack const*, StPicoEvent const*) const;
     bool  isTpcPion(StPicoTrack const*) const;
     bool  isTpcKaon(StPicoTrack const*,StThreeVectorF const * pVtx) const;
     bool isTofKaon(StPicoTrack const* const, float beta) const;
@@ -111,6 +112,23 @@ class StPicoD0AnaMaker : public StMaker
     TString mOutFileName;
     TString mInputFileList;
     TFile* mOutputFile;
+    TH1F *hPionPlus[9];
+    TH1F *hPionPlus_noRatio[9];
+    TH1F *hPionPlus_nHits25[9];
+    TH1F *hPionMinus[9];
+    TH1F *hPionMinus_noRatio[9];
+    TH1F *hPionMinus_nHits25[9];
+    TH1F *hKaonPlus[9];
+    TH1F *hKaonPlus_noRatio[9];
+    TH1F *hKaonPlus_nHits25[9];
+    TH1F *hKaonMinus[9];
+    TH1F *hKaonMinus_noRatio[9];
+    TH1F *hKaonMinus_nHits25[9];
+    TH2D *pionDca;
+    TH2D *kaonDca;
+    TH2D *decayLength;
+    TH2D *dcaDaughter;
+    TH2D *pointingAngle;//1000,0,0.1
     //TFile* mPhi;
     TChain* mChain;
     int mEventCounter;
@@ -137,6 +155,7 @@ class StPicoD0AnaMaker : public StMaker
     TH3D *d0BarMassPt;
     TH3D *d0MassPhiEta;
     TH3D *d0BarMassPhiEta;
+
     TH3D *d0MassPhiEta_pt3;
     TH3D *d0BarMassPhiEta_pt3;
 
@@ -148,6 +167,12 @@ class StPicoD0AnaMaker : public StMaker
     TH3D *d0BarMassPhiEta_5bin;
     TH3D *d0MassPhiEta_noeff;
     TH3D *d0BarMassPhiEta_noeff;
+
+    TH3D *d0MassPhiEta_nHits25;
+    TH3D *d0BarMassPhiEta_nHits25;
+
+    TH3D *d0MassPhiEta_noHitsRatio;
+    TH3D *d0BarMassPhiEta_noHitsRatio;
 
     Int_t CheckrunNumber(int runnumber) const;            
     TH1D *zdcPsi;
