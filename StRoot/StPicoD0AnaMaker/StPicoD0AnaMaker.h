@@ -124,11 +124,21 @@ class StPicoD0AnaMaker : public StMaker
     TH1F *hKaonMinus[9];
     TH1F *hKaonMinus_noRatio[9];
     TH1F *hKaonMinus_nHits25[9];
+    TH2D *pionPtEta;
+    TH2D *kaonPtEta;
     TH2D *pionDca;
     TH2D *kaonDca;
     TH2D *decayLength;
     TH2D *dcaDaughter;
     TH2D *pointingAngle;//1000,0,0.1
+    TH1D *hCentrality;
+    TH1D *hCentralityWeight;
+    TH2D *h2RefMult;
+    TH2D *h2RefMult_0_80;
+    TH2D *h2RefMult_10_80;
+    TH1D *zdcPsi_east;
+    TH1D *zdcPsi_west;
+    TH2D *centra_weight;
     //TFile* mPhi;
     TChain* mChain;
     int mEventCounter;

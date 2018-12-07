@@ -81,7 +81,7 @@ Int_t StPicoD0AnaMaker::Init()
       ifs>>efficiency[j][i];
 
   // -------------- USER VARIABLES -------------------------
-  mGRefMultCorrUtil = new StRefMultCorr("grefmult");
+  // mGRefMultCorrUtil = new StRefMultCorr("grefmult");
   miniZDCSMD=new mZDCSMD();
   miniZDCSMD->SetFileDirectory("/global/homes/a/amcw7777/auau200GeVD0V1/ZDCSMDFile");
   // pedgain 1,  beam center 2,  phiweight + shift (subevent) 3,  Fullevent 4,  ready+wQAHists 5,  ready+woQAHists 6 
@@ -112,6 +112,9 @@ Int_t StPicoD0AnaMaker::Init()
   testEvent = new TH1D("testEvent","",10,-0.5,9.5);
   zdcPsi = new TH1D("zdcPsi",";#psi_{ZDC}",1000,0,twoPI);
   zdcPsi_corr = new TH1D("zdcPsi_corr",";#psi_{ZDC}",1000,0,twoPI);
+  zdcPsi_east = new TH1D("zdcPsi_east",";#psi_{ZDC}",1000,0,twoPI);
+  zdcPsi_west = new TH1D("zdcPsi_west",";#psi_{ZDC}",1000,0,twoPI);
+  centra_weight = new TH2D("centra_weight", "",10,0,10,1000,-10,10);
   pionV1Plus = new TProfile("pionV1Plus","",48,-1.2,1.2);
   pionV1Minus = new TProfile("pionV1Minus","",48,-1.2,1.2);
   zdcResolution = new TProfile("zdcResolution","",10,0,10);
@@ -120,6 +123,11 @@ Int_t StPicoD0AnaMaker::Init()
   trackPhiEtaHFT = new TH2D("trackPhiEtaHFT",";#phi;#eta",100,-1.*PI,PI,10,-1,1);
   hHitsDedx = new TH1D("hitsDedx","",100,0,100);
   hSigmaPiBeta = new TH2D("sigmaPiBeta","",100,0,5,50,0,0.05);
+  hCentrality = new TH1D("hCentrality","",10,0,10);
+  hCentralityWeight = new TH1D("hCentralityWeight","",10,0,10);
+  h2RefMult = new TH2D("h2RefMult",";gRefMult;refMult",1500,0,1500,1500,0,1500);
+  h2RefMult_0_80 = new TH2D("h2RefMult_0_80",";gRefMult;refMult",1500,0,1500,1500,0,1500);
+  h2RefMult_10_80 = new TH2D("h2RefMult_10_80",";gRefMult;refMult",1500,0,1500,1500,0,1500);
   pionV1Plus->Sumw2();
   pionV1Minus->Sumw2();
   zdcResolution->Sumw2();
@@ -186,6 +194,8 @@ Int_t StPicoD0AnaMaker::Init()
   decayLength = new TH2D("decayLength","",10,0,10,1000,0,0.1);
   dcaDaughter = new TH2D("dcaDaughter","",10,0,10,1000,0,0.1);
   pointingAngle = new TH2D("pointingAngle","",10,0,10,1000,0,0.1);
+  pionPtEta = new TH2D("pionPtEta","",200,-1,1,100,0,10);
+  kaonPtEta = new TH2D("kaonPtEta","",200,-1,1,100,0,10);
 
   return kStOK;
 }
@@ -203,6 +213,8 @@ Int_t StPicoD0AnaMaker::Finish()
   fout1.close();
   // fRapEff->Close();
   mOutputFile->cd();
+  pionPtEta->Write();
+  kaonPtEta->Write();
   pionDca->Write();
   kaonDca->Write();
   decayLength->Write();
@@ -230,6 +242,9 @@ Int_t StPicoD0AnaMaker::Finish()
   d0BarMassPt->Write();
   zdcPsi->Write();
   zdcPsi_corr->Write();
+  zdcPsi_east->Write();
+  zdcPsi_west->Write();
+  centra_weight->Write();
   pionV1Plus->Write();
   pionV1Minus->Write();
   zdcResolution->Write();
@@ -238,10 +253,17 @@ Int_t StPicoD0AnaMaker::Finish()
   trackPhiEtaHFT->Write();
   hHitsDedx->Write();
   hSigmaPiBeta->Write();
+  hCentrality->Write();
+  hCentralityWeight->Write();
+  h2RefMult->Write();
+  h2RefMult_0_80->Write();
+  h2RefMult_10_80->Write();
   miniZDCSMD->WriteHist();
+
   cout<<"writing new histo"<<endl;
   // save user variables here
   delete mPrescales;
+  mOutputFile->Close();
 
   return kStOK;
 }
@@ -292,12 +314,33 @@ Int_t StPicoD0AnaMaker::Make()
   }
   mGRefMultCorrUtil->init(picoDst->event()->runId());
   mGRefMultCorrUtil->initEvent(picoDst->event()->grefMult(),pVtx.z(),picoDst->event()->ZDCx()) ;
+  // mGRefMultCorrUtil->print();
   int centrality  = mGRefMultCorrUtil->getCentralityBin9();
   int cent = centrality+1;
-  if(centrality<0 || centrality == 7 || centrality == 8) {
+  h2RefMult->Fill(event->grefMult(), event->refMult());
+  if(picoDst->event()->runId() < 15107000 || mGRefMultCorrUtil->isBadRun(picoDst->event()->runId())) 
+  {
+    LOG_WARN << "bad run!" << endl;
+    return kStWarn;
+  }
+  if(centrality<0) 
+  {
     LOG_WARN << "not minBias sample!" << endl;
     return kStWarn;
   }
+  testEvent->Fill(3);
+  h2RefMult_0_80->Fill(event->grefMult(), event->refMult());
+  if(centrality >= 7) {
+  // if(centrality<0 ) {
+    LOG_WARN << "0-10\% centrality" << endl;
+    return kStWarn;
+  }
+  testEvent->Fill(4);
+  h2RefMult_10_80->Fill(event->grefMult(), event->refMult());
+  double reweight = mGRefMultCorrUtil->getWeight();
+  hCentralityWeight->Fill(centrality, reweight);
+  centra_weight->Fill(centrality, reweight);
+  hCentrality->Fill(centrality);
 
   // cout<<"centrality = "<<centrality<<endl;
   for(unsigned int i=0;i<picoDst->numberOfTracks();i++)
@@ -307,6 +350,11 @@ Int_t StPicoD0AnaMaker::Make()
     if(!itrk->isHFTTrack()) continue;
     if(!isGoodTrack(itrk,event))  continue;
     testTrack->Fill(1);
+
+    StThreeVectorF Vertex3D=event->primaryVertex();
+    float b = event->bField();
+    StThreeVectorF gmom = itrk->gMom(Vertex3D,b);
+
     bool tpcPion = isTpcPion(itrk);
     bool tpcKaon = isTpcKaon(itrk,&pVtx);
     float kBeta = getTofBeta(itrk,&pVtx);
@@ -315,21 +363,26 @@ Int_t StPicoD0AnaMaker::Make()
     bool pTofAvailable = pBeta>0;
     bool tofKaon = kTofAvailable && isTofKaon(itrk,kBeta);
     bool tofPion = pTofAvailable && isTofPion(itrk,pBeta);
-    bool goodKaon = tpcKaon && tofKaon;
-    bool goodPion = tpcPion && tofPion;
+    bool goodKaon = kTofAvailable ? tofKaon&&tpcKaon : tpcKaon;
+    bool goodPion = pTofAvailable ? tofPion&&tpcPion : tpcPion;
     if(goodKaon)
+    {
       testTrack->Fill(2);
+      kaonPtEta->Fill(gmom.pseudoRapidity(),gmom.perp());
+    }
     if(goodPion)
+    {
       testTrack->Fill(3);
-
-
+      pionPtEta->Fill(gmom.pseudoRapidity(),gmom.perp());
+    }
   }
   // if(!(centrality==4||centrality==5||centrality==6))//minBias trigger requires
   // {
   //   LOG_WARN << " Not Good Event! Skip! " << endm;
   //   return kStWarn;
   // }
-  const int  runID    = 17109018;//event->runId();
+  // const int  runID    = 17109018;//event->runId();
+  const int  runID    = event->runId();
   float ZDCSMDadc[32];
   for(int i=0;i<8;i++){
     ZDCSMDadc[i]   =  event->ZdcSmdEastHorizontal(i);   // picoDst function i 0-7
@@ -361,11 +414,12 @@ Int_t StPicoD0AnaMaker::Make()
 
   zdcPsi->Fill(mZDC1Event_PsiOrigin);
   zdcPsi_corr->Fill(mZDC1Event_PsiF);
+  zdcPsi_east->Fill(mZDC1Event_PsiE);
+  zdcPsi_west->Fill(mZDC1Event_PsiW);
 	zdcResolution->Fill(cent,cos(1.*(mZDC1Event_PsiE-mZDC1Event_PsiW+PI))); 
 	zdcResolution->Fill(0.,cos(1.*(mZDC1Event_PsiE-mZDC1Event_PsiW+PI))); 
 ////////////////////////////////////////////////////
   // cout<<"zdcsmd done."<<endl;
-  double reweight = mGRefMultCorrUtil->getWeight();
   // if (reweight < 0.5)
     // cout<<"event reweight =  "<<reweight<<endl;
   for (int idx = 0; idx < aKaonPion->GetEntries(); ++idx)
@@ -397,8 +451,6 @@ Int_t StPicoD0AnaMaker::Make()
     bool pTofAvailable = pBeta>0;
     bool tofKaon = kTofAvailable && isTofKaon(kaon,kBeta,event);
     bool tofPion = pTofAvailable && isTofPion(pion,pBeta,event);
-    // bool goodKaon = (kTofAvailable && tofKaon) || (!kTofAvailable && tpcKaon);
-    // bool goodPion = (pTofAvailable && tofPion) || (!pTofAvailable && tpcPion);
     bool goodKaon = kTofAvailable ? tofKaon&&tpcKaon : tpcKaon;
     bool goodPion = pTofAvailable ? tofPion&&tpcPion : tpcPion;
     // bool goodKaon = tpcKaon && tofKaon;
@@ -431,11 +483,17 @@ Int_t StPicoD0AnaMaker::Make()
     int count_d0bar = 0;
     if(charge<0)
     {
-      testTrack->Fill(5);
       TLorentzVector d0Lorentz;
       d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
       double kpY = d0Lorentz.Rapidity();
+      if(fabs(kpY) > 0.8)
+        continue;
       double deltaPhi = fabs(kp->phi()-mZDC1Event_PsiF);
+      kaonDca->Fill(kp->pt(),kp->kaonDca());
+      pionDca->Fill(kp->pt(),kp->pionDca());
+      dcaDaughter->Fill(kp->pt(),kp->dcaDaughters());
+      decayLength->Fill(kp->pt(),kp->decayLength());
+      pointingAngle->Fill(kp->pt(),sin(kp->pointingAngle())*kp->decayLength());
       if(deltaPhi > PI)
         deltaPhi = twoPI - deltaPhi;
       deltaPhi = fabs(deltaPhi);
@@ -455,27 +513,29 @@ Int_t StPicoD0AnaMaker::Make()
       if(kaon->charge() < 0)
       {
         count_d0++;
+        testTrack->Fill(5);
         d0MassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         if(d0Pt >= 3)
           d0MassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         d0MassPhiEta_5bin->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         d0MassPhiEta_noeff->Fill(kp->m(),deltaPhi,kpY,1.*reweight);
-        d0MassPt->Fill(kp->m(),kp->pt(),kpY,1.*reweight/d0Eff);
+        d0MassPt->Fill(kp->m(),kp->pt(),kpY,1.);
       }
       if(kaon->charge() > 0)
       {
         count_d0bar++;
+        testTrack->Fill(6);
         d0BarMassPhiEta->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         if(d0Pt >= 3)
           d0BarMassPhiEta_pt3->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         d0BarMassPhiEta_5bin->Fill(kp->m(),deltaPhi,kpY,1.*reweight/d0Eff);
         d0BarMassPhiEta_noeff->Fill(kp->m(),deltaPhi,kpY,1.*reweight);
-        d0BarMassPt->Fill(kp->m(),kp->pt(),kpY,1.*reweight/d0Eff);
+        d0BarMassPt->Fill(kp->m(),kp->pt(),kpY,1.);
       }
-      // fout1<<kp->phi()<<","<<pimom.perp()<<","<<kp->decayLength()<<","<<kmom.perp()<<","<<mPicoD0Event->eventId()<<",";
-      // fout1<<kp->kaonDca()<<","<<kp->dcaDaughters()<<","<<kpY<<","<<kmom.pseudoRapidity()<<","<<kp->pionDca()<<","<<kp->m()<<","<<count_d0<<",";
-      // fout1<<count_d0bar<<","<<kp->pt()<<","<<sin(kp->pointingAngle())*kp->decayLength()<<","<<pimom.pseudoRapidity()<<","<<cos(kp->pointingAngle())<<",";
-      // fout1<<kp->kaonIdx()<<","<<kp->pionIdx()<<",Leon"<<","<<centrality<<endl;
+      fout1<<kp->phi()<<","<<pimom.perp()<<","<<kp->decayLength()<<","<<kmom.perp()<<","<<mPicoD0Event->eventId()<<",";
+      fout1<<kp->kaonDca()<<","<<kp->dcaDaughters()<<","<<kpY<<","<<kmom.pseudoRapidity()<<","<<kp->pionDca()<<","<<kp->m()<<","<<count_d0<<",";
+      fout1<<count_d0bar<<","<<kp->pt()<<","<<sin(kp->pointingAngle())*kp->decayLength()<<","<<pimom.pseudoRapidity()<<","<<cos(kp->pointingAngle())<<",";
+      fout1<<kp->kaonIdx()<<","<<kp->pionIdx()<<",Leon"<<","<<centrality<<endl;
 
     }//D loop
     /*
@@ -624,11 +684,6 @@ int StPicoD0AnaMaker::isD0Pair(StKaonPion const* const kp) const
 
   StPicoTrack const* kaon = picoDst->track(kp->kaonIdx());
   StPicoTrack const* pion = picoDst->track(kp->pionIdx());
-  kaonDca->Fill(kp->pt(),kp->kaonDca());
-  pionDca->Fill(kp->pt(),kp->pionDca());
-  dcaDaughter->Fill(kp->pt(),kp->dcaDaughters());
-  decayLength->Fill(kp->pt(),kp->decayLength());
-  pointingAngle->Fill(kp->pt(),sin(kp->pointingAngle())*kp->decayLength());
   // TLorentzVector d0Lorentz;
   // d0Lorentz.SetPtEtaPhiM(kp->pt(),kp->eta(),kp->phi(),kp->m());
   // if(fabs(d0Lorentz.Rapidity())>1.) return 0;
@@ -671,6 +726,7 @@ int StPicoD0AnaMaker::isD0Pair(StKaonPion const* const kp) const
 
   if(pairCuts)
     return charge;
+    // return -1;
   else
     return 0;
 }

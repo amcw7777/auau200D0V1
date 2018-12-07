@@ -66,7 +66,8 @@ void mZDCSMD::SetZDCSMDcent(Float_t *nZDC,int centrality,int runN)
 	}
 
 	mcent=centrality;
-	mrun=runN;
+	// mrun=runN;
+	mrun=17109018;
 	runPointer(mrun);
 }	
 

@@ -508,7 +508,6 @@ Int_t StRefMultCorr::getCentralityBin16() const
 //______________________________________________________________________________
 Int_t StRefMultCorr::getCentralityBin9() const
 {
-  // cout<<"I am calling the correct one!"<<endl;
   Int_t CentBin9 = -1;
 
   // Invalid index
